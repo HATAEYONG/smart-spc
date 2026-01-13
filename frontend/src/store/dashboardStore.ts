@@ -114,7 +114,7 @@ export const useDashboardStore = create<DashboardState>()(
       setTheme: (theme) => set({ theme }),
 
       resetDashboard: () => set({ widgets: defaultWidgets, theme: 'light' })
-    })),
+    }),
     {
       name: 'spc-dashboard-storage'
     }

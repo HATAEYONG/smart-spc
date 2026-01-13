@@ -196,7 +196,7 @@ export const TimeSeries3DChart: React.FC<TimeSeries3DChartProps> = ({
         layout={layout}
         config={config}
         useResizeHandler={true}
-        style={{ width: '100%', height: `${height}px' }}
+        style={{ width: '100%', height: `${height}px` }}
       />
     </div>
   );

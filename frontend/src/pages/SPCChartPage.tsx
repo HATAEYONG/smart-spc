@@ -28,6 +28,7 @@ import {
 import {
   AlertTriangle,
   AlertCircle,
+  CheckCircle,
   Settings,
   RefreshCw,
   Plus,
@@ -55,12 +56,23 @@ const generateChartData = () => {
 
 const chartData = generateChartData();
 
-export const SPCChartPage: React.FC = () => {
-  const [selectedChart, setSelectedChart] = useState('XBAR_R');
-  const [loading, setLoading] = useState(false);
-
-  const violations = [
-  }
+const violations = [
+  {
+    id: '1',
+    point: 15,
+    ruleCode: 'RULE1',
+    ruleName: '1개 점이 3σ 벗어남',
+    description: '샘플 15에서 UCL 초과',
+    severity: 'high',
+  },
+  {
+    id: '2',
+    point: 22,
+    ruleCode: 'RULE2',
+    ruleName: '연속 9개 점이 CL 같은 쪽',
+    description: '샘플 14-22 위반',
+    severity: 'medium',
+  },
 ];
 
 export const SPCChartPage: React.FC = () => {

@@ -138,12 +138,12 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
       bordercolor: '#DDD',
       borderwidth: 1
     },
-    shapes: [
+    shapes: (() => {
       // 실제/예측 구분선
       if (data.some(d => d.is_forecast)) {
         const firstForecastIdx = data.findIndex(d => d.is_forecast);
         if (firstForecastIdx > 0) {
-          return {
+          return [{
             type: 'line',
             x0: new Date(data[firstForecastIdx].timestamp),
             y0: 0,
@@ -155,10 +155,11 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
               width: 2,
               dash: 'dot'
             }
-          };
+          }];
         }
       }
-    ].filter(Boolean)
+      return [];
+    })()
   };
 
   const config = {
