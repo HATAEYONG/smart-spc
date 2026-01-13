@@ -132,4 +132,22 @@ export const spcService = {
       threshold
     });
   },
+
+  /**
+   * 공정능력 분석
+   * POST /spc/capability/
+   */
+  async analyzeCapability(
+    data: number[],
+    lsl: number,
+    usl: number,
+    target?: number
+  ): Promise<ApiResponse<any>> {
+    return api.post<any>('/spc/capability/', {
+      data,
+      lsl,
+      usl,
+      target,
+    });
+  },
 };

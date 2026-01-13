@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -33,6 +33,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
+import { qcostService } from '../services/qcostService';
 
 interface COPQData {
   totalCOPQ: number;
@@ -56,8 +57,10 @@ interface COPQData {
 export const COPQAnalysisPage: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('6months');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [loading, setLoading] = useState(false);
 
-  const [data] = useState<COPQData>({
+  // 샘플 데이터
+  const sampleData: COPQData = {
     totalCOPQ: 62000000,
     copqRatio: 49.6,
     internalFailure: 42000000,
@@ -77,7 +80,92 @@ export const COPQAnalysisPage: React.FC = () => {
       { month: '11월', copq: 63000, target: 65000 },
       { month: '12월', copq: 62000, target: 65000 },
     ]
-  });
+  };
+
+  const [data, setData] = useState<COPQData>(sampleData);
+
+  useEffect(() => {
+    loadCOPQData();
+  }, [selectedPeriod, selectedCategory]);
+
+  const loadCOPQData = async () => {
+    setLoading(true);
+    try {
+      // 기간 설정
+      const today = new Date();
+      const startDate = new Date();
+      if (selectedPeriod === '6months') {
+        startDate.setMonth(today.getMonth() - 6);
+      } else if (selectedPeriod === '3months') {
+        startDate.setMonth(today.getMonth() - 3);
+      } else if (selectedPeriod === '1month') {
+        startDate.setMonth(today.getMonth() - 1);
+      }
+
+      const from = startDate.toISOString().split('T')[0];
+      const to = today.toISOString().split('T')[0];
+
+      // Q-COST 엔트리 조회
+      const entriesResponse = await qcostService.getEntries(from, to);
+      const categoriesResponse = await qcostService.getCategories();
+
+      if (entriesResponse.ok && categoriesResponse.ok) {
+        const entries = entriesResponse.data?.results || entriesResponse.data || [];
+        const categories = categoriesResponse.data || [];
+
+        // 카테고리별 비용 집계
+        let internalFailure = 0;
+        let externalFailure = 0;
+        const defectMap = new Map<string, number>();
+
+        entries.forEach((entry: any) => {
+          const amount = entry.amount || 0;
+          const category = categories.find((c: any) => c.qcat_id === entry.qcat_id);
+
+          if (category) {
+            if (category.lvl1 === 'INTERNAL_FAILURE') {
+              internalFailure += amount;
+            } else if (category.lvl1 === 'EXTERNAL_FAILURE') {
+              externalFailure += amount;
+            }
+
+            // 불량 유형별 집계
+            const defectType = entry.description || '기타';
+            defectMap.set(defectType, (defectMap.get(defectType) || 0) + amount);
+          }
+        });
+
+        const totalCOPQ = internalFailure + externalFailure;
+        const totalQCost = totalCOPQ * 2; // 가정: 전체 품질비용의 50%가 COPQ
+
+        // TOP 5 불량 유형 정렬
+        const sortedDefects = Array.from(defectMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map((defect, index) => ({
+            rank: index + 1,
+            defect: defect[0],
+            cost: defect[1],
+            percentage: (defect[1] / totalCOPQ) * 100,
+            trend: 'stable' as const,
+          }));
+
+        setData({
+          totalCOPQ,
+          copqRatio: totalQCost > 0 ? (totalCOPQ / totalQCost) * 100 : 0,
+          internalFailure,
+          externalFailure,
+          topDefects: sortedDefects.length > 0 ? sortedDefects : sampleData.topDefects,
+          monthlyTrend: sampleData.monthlyTrend, // API가 제공하지 않으면 샘플 사용
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load COPQ data:', error);
+      // API 실패시 샘플 데이터 유지
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
