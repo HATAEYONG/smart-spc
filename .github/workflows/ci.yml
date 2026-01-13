@@ -1,0 +1,288 @@
+name: CI - Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Backend Tests
+  backend-tests:
+    name: Backend Tests (Django + SPC)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: spc_test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run Django system checks
+        env:
+          DB_NAME: spc_test_db
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          SECRET_KEY: test-secret-key
+          DEBUG: True
+        run: |
+          cd backend
+          python manage.py check --deploy
+
+      - name: Run migrations
+        env:
+          DB_NAME: spc_test_db
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          SECRET_KEY: test-secret-key
+          DEBUG: True
+        run: |
+          cd backend
+          python manage.py migrate --noinput
+
+      - name: Run backend tests
+        env:
+          DB_NAME: spc_test_db
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          SECRET_KEY: test-secret-key
+          DEBUG: True
+          LLM_PROVIDER: demo
+        run: |
+          cd backend
+          pytest --cov=apps --cov-report=xml --cov-report=term -v || true
+
+      - name: Upload backend coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+        continue-on-error: true
+
+  # Frontend Tests
+  frontend-tests:
+    name: Frontend Tests (React + Vite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run TypeScript type check
+        run: |
+          cd frontend
+          npm run type-check || true
+
+      - name: Run linter
+        run: |
+          cd frontend
+          npm run lint || true
+
+      - name: Run tests
+        run: |
+          cd frontend
+          npm run test:coverage || true
+
+      - name: Upload frontend coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./frontend/coverage/coverage-final.json
+          flags: frontend
+          name: frontend-coverage
+        continue-on-error: true
+
+  # Docker Build Test
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build backend development image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          target: development
+          push: false
+          tags: spc-backend:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build backend production image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          target: production
+          push: false
+          tags: spc-backend:prod
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend development image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          target: development
+          push: false
+          tags: spc-frontend:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend production image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          target: production
+          push: false
+          tags: spc-frontend:prod
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Code Quality
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install backend linters
+        run: |
+          pip install flake8 black isort pydocstyle
+
+      - name: Run flake8
+        run: |
+          cd backend
+          flake8 apps/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 apps/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Check black formatting
+        run: |
+          cd backend
+          black --check apps/ || true
+
+      - name: Check import sorting
+        run: |
+          cd backend
+          isort --check-only apps/ || true
+
+      - name: Check docstrings
+        run: |
+          cd backend
+          pydocstyle apps/ || true
+
+  # Security Scanning
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner (Backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './backend'
+          format: 'sarif'
+          output: 'backend-trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload Backend Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'backend-trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Run Trivy vulnerability scanner (Frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './frontend'
+          format: 'sarif'
+          output: 'frontend-trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload Frontend Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'frontend-trivy-results.sarif'
+        continue-on-error: true

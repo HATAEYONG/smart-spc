@@ -1,0 +1,21 @@
+# Django
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.0
+djangorestframework-simplejwt==5.3.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# Authentication
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Utils
+python-dotenv==1.0.0
+python-dateutil==2.8.2
+
+# Development
+pytest==7.4.3
+pytest-django==4.7.0
+httpx==0.25.2

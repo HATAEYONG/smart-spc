@@ -1,0 +1,3 @@
+"""
+Smart SPC Django Project
+"""
