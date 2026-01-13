@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -18,6 +18,7 @@ import {
   Activity,
   Clock
 } from 'lucide-react';
+import * as sixSigmaApi from '../services/sixSigmaApi';
 
 interface DMAICProject {
   id: string;
@@ -44,7 +45,12 @@ interface PhaseMetric {
 }
 
 export const SixSigmaDashboardPage: React.FC = () => {
-  const [projects, setProjects] = useState<DMAICProject[]>([
+  const [projects, setProjects] = useState<DMAICProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 샘플 데이터 (API 실패시 사용)
+  const sampleProjects: DMAICProject[] = [
     {
       id: '1',
       code: 'SS-2026-001',
@@ -120,7 +126,46 @@ export const SixSigmaDashboardPage: React.FC = () => {
       savings: 95000000,
       teamSize: 3,
     },
-  ]);
+  ];
+
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await sixSigmaApi.getDMAICProjects();
+
+      // API 데이터를 UI 형식으로 변환
+      const transformedProjects: DMAICProject[] = data.map((p: sixSigmaApi.DMAICProject) => ({
+        id: p.id.toString(),
+        code: p.project_code,
+        name: p.project_name,
+        phase: p.phase as any,
+        status: p.status as any,
+        priority: p.priority as any,
+        champion: p.champion_name,
+        progress: p.progress_percentage,
+        startDate: p.start_date,
+        targetEndDate: p.target_end_date,
+        daysRemaining: p.days_remaining,
+        savings: 0, // API에 없으면 0으로 처리
+        teamSize: 5, // 기본값
+      }));
+
+      setProjects(transformedProjects.length > 0 ? transformedProjects : sampleProjects);
+    } catch (err: any) {
+      console.error('Failed to load projects:', err);
+      setError(err.message);
+      // API 실패시 샘플 데이터 사용
+      setProjects(sampleProjects);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const phaseMetrics: PhaseMetric[] = [
     { phase: 'DEFINE', label: '정의 (Define)', count: projects.filter(p => p.phase === 'DEFINE').length, icon: Target, color: 'bg-blue-100 text-blue-700' },
@@ -180,8 +225,16 @@ export const SixSigmaDashboardPage: React.FC = () => {
     inProgress: projects.filter(p => p.status === 'IN_PROGRESS').length,
     completed: projects.filter(p => p.status === 'COMPLETED').length,
     totalSavings: projects.reduce((sum, p) => sum + p.savings, 0),
-    avgProgress: (projects.reduce((sum, p) => sum + p.progress, 0) / projects.length).toFixed(0),
+    avgProgress: projects.length > 0 ? (projects.reduce((sum, p) => sum + p.progress, 0) / projects.length).toFixed(0) : '0',
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
