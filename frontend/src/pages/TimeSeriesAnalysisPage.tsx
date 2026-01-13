@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { TimeSeries3DChart } from '../components/TimeSeries3DChart';
 import { Heatmap3D } from '../components/Heatmap3D';
 import { Scatter3D } from '../components/Scatter3D';
 import { ForecastChart } from '../components/ForecastChart';
 import { Spinner, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { spcService } from '../services/spcService';
 
 interface TimeSeriesAnalysisProps {
   productId?: number;
@@ -24,15 +24,15 @@ export const TimeSeriesAnalysisPage: React.FC<TimeSeriesAnalysisProps> = ({ prod
   const fetchAnalysis = async () => {
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/api/spc/time-series/analyze/', {
-        product_id: productId,
-        days,
-        forecast_steps: forecastSteps
-      });
-      setAnalysisData(response.data);
-      toast.success('시계열 분석 완료');
+      const response = await spcService.analyzeTimeSeries(productId, days, forecastSteps);
+      if (response.ok && response.data) {
+        setAnalysisData(response.data);
+        toast.success('시계열 분석 완료');
+      } else {
+        throw new Error(response.error || '분석 실패');
+      }
     } catch (error: any) {
-      toast.error(`분석 실패: ${error.response?.data?.error || error.message}`);
+      toast.error(`분석 실패: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -41,16 +41,15 @@ export const TimeSeriesAnalysisPage: React.FC<TimeSeriesAnalysisProps> = ({ prod
   const fetchForecast = async () => {
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/api/spc/time-series/forecast/', {
-        product_id: productId,
-        days,
-        forecast_steps: forecastSteps,
-        method: forecastMethod
-      });
-      setForecastData(response.data);
-      toast.success('예측 완료');
+      const response = await spcService.forecastTimeSeries(productId, days, forecastSteps, forecastMethod);
+      if (response.ok && response.data) {
+        setForecastData(response.data);
+        toast.success('예측 완료');
+      } else {
+        throw new Error(response.error || '예측 실패');
+      }
     } catch (error: any) {
-      toast.error(`예측 실패: ${error.response?.data?.error || error.message}`);
+      toast.error(`예측 실패: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -59,15 +58,15 @@ export const TimeSeriesAnalysisPage: React.FC<TimeSeriesAnalysisProps> = ({ prod
   const fetchAnomalies = async () => {
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/api/spc/time-series/detect_anomalies/', {
-        product_id: productId,
-        days,
-        threshold: 3.0
-      });
-      setAnomalyData(response.data);
-      toast.success('이상 감지 완료');
+      const response = await spcService.detectAnomalies(productId, days, 3.0);
+      if (response.ok && response.data) {
+        setAnomalyData(response.data);
+        toast.success('이상 감지 완료');
+      } else {
+        throw new Error(response.error || '이상 감지 실패');
+      }
     } catch (error: any) {
-      toast.error(`이상 감지 실패: ${error.response?.data?.error || error.message}`);
+      toast.error(`이상 감지 실패: ${error.message}`);
     } finally {
       setLoading(false);
     }

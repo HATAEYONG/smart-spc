@@ -82,4 +82,54 @@ export const spcService = {
   ): Promise<ApiResponse<SpcEventDTO>> {
     return api.post<SpcEventDTO>('/spc/events', data);
   },
+
+  /**
+   * 시계열 분석
+   * POST /spc/time-series/analyze/
+   */
+  async analyzeTimeSeries(
+    productId: number,
+    days: number,
+    forecastSteps: number = 5
+  ): Promise<ApiResponse<any>> {
+    return api.post<any>('/spc/time-series/analyze/', {
+      product_id: productId,
+      days,
+      forecast_steps: forecastSteps
+    });
+  },
+
+  /**
+   * 시계열 예측
+   * POST /spc/time-series/forecast/
+   */
+  async forecastTimeSeries(
+    productId: number,
+    days: number,
+    forecastSteps: number = 5,
+    method: string = 'COMBINED'
+  ): Promise<ApiResponse<any>> {
+    return api.post<any>('/spc/time-series/forecast/', {
+      product_id: productId,
+      days,
+      forecast_steps: forecastSteps,
+      method
+    });
+  },
+
+  /**
+   * 시계열 이상 감지
+   * POST /spc/time-series/detect_anomalies/
+   */
+  async detectAnomalies(
+    productId: number,
+    days: number,
+    threshold: number = 3.0
+  ): Promise<ApiResponse<any>> {
+    return api.post<any>('/spc/time-series/detect_anomalies/', {
+      product_id: productId,
+      days,
+      threshold
+    });
+  },
 };
