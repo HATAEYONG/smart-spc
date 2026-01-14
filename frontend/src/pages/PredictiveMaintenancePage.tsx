@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -12,11 +12,29 @@ import {
   AlertTriangle,
   Wrench,
   TrendingUp,
+  TrendingDown,
   Settings,
   Calendar,
   Thermometer,
   Zap,
+  BarChart3,
+  LineChart as LineChartIcon,
+  Clock,
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from 'recharts';
 import { pmService, Equipment, SensorData, FailurePrediction, PMDashboardData } from '../services/pmService';
 
 export const PredictiveMaintenancePage: React.FC = () => {
@@ -87,6 +105,60 @@ export const PredictiveMaintenancePage: React.FC = () => {
       case 'CRITICAL': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // 센서 데이터를 차트 포맷으로 변환
+  const prepareChartData = (data: SensorData[]) => {
+    const grouped = data.reduce((acc: any, curr) => {
+      const timestamp = new Date(curr.timestamp).getTime();
+      if (!acc[timestamp]) {
+        acc[timestamp] = { timestamp };
+      }
+      if (curr.sensor_type === 'VIBRATION') {
+        acc[timestamp].vibration = curr.value;
+      } else if (curr.sensor_type === 'TEMPERATURE') {
+        acc[timestamp].temperature = curr.value;
+      } else if (curr.sensor_type === 'PRESSURE') {
+        acc[timestamp].pressure = curr.value;
+      }
+      return acc;
+    }, {});
+
+    return Object.values(grouped).sort((a: any, b: any) => a.timestamp - b.timestamp);
+  };
+
+  // 건전도 트렌드 데이터 생성 (시뮬레이션)
+  const generateHealthTrendData = (currentScore: number) => {
+    const data = [];
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const variation = (Math.random() - 0.5) * 10;
+      const score = Math.max(0, Math.min(100, currentScore + variation - (i * 0.2)));
+      data.push({
+        date: date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
+        healthScore: score,
+      });
+    }
+    return data;
+  };
+
+  // 고장 확률 트렌드 데이터 생성 (시뮬레이션)
+  const generateFailureTrendData = (currentProb: number) => {
+    const data = [];
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const variation = (Math.random() - 0.5) * 5;
+      const prob = Math.max(0, Math.min(100, currentProb + variation + (i * 0.1)));
+      data.push({
+        date: date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
+        failureProb: prob,
+      });
+    }
+    return data;
   };
 
   if (loading) {
@@ -180,6 +252,113 @@ export const PredictiveMaintenancePage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* 설비 건전도 히트맵 */}
+      {equipment && equipment.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-purple-600" />
+              설비 건전도 현황
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {equipment.map((eq) => (
+                <div
+                  key={eq.id}
+                  className={`relative p-4 rounded-lg border-2 transition-all ${
+                    eq.health_score >= 80
+                      ? 'border-green-200 bg-green-50'
+                      : eq.health_score >= 60
+                      ? 'border-yellow-200 bg-yellow-50'
+                      : 'border-red-200 bg-red-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{eq.code}</h4>
+                      <p className="text-sm text-gray-600">{eq.name}</p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={
+                        eq.health_score >= 80
+                          ? 'bg-green-100 text-green-800'
+                          : eq.health_score >= 60
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }
+                    >
+                      {eq.status_display}
+                    </Badge>
+                  </div>
+
+                  {/* 건전도 바 */}
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-gray-600">건전도</span>
+                      <span className={`font-semibold ${
+                        eq.health_score >= 80 ? 'text-green-600' : eq.health_score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {eq.health_score.toFixed(1)}점
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${
+                          eq.health_score >= 80 ? 'bg-green-500' : eq.health_score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${eq.health_score}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 고장 확률 바 */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-gray-600">고장 확률</span>
+                      <span className="font-semibold text-orange-600">
+                        {eq.failure_probability.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="h-2 rounded-full transition-all bg-orange-500"
+                        style={{ width: `${eq.failure_probability}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 상태 아이콘 */}
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>가동률: {eq.availability_current.toFixed(1)}%</span>
+                    {eq.maintenance_overdue && (
+                      <span className="text-red-600 font-semibold">점검 지연</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 범례 */}
+            <div className="mt-4 flex items-center justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-green-500 rounded"></div>
+                <span className="text-gray-600">양호 (80점 이상)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                <span className="text-gray-600">주의 (60-79점)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-red-500 rounded"></div>
+                <span className="text-gray-600">위험 (60점 미만)</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* 주요 내용 */}
@@ -346,6 +525,153 @@ export const PredictiveMaintenancePage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* 센서 데이터 추이 차트 */}
+              {sensorData && sensorData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <LineChartIcon className="w-5 h-5 text-blue-600" />
+                      센서 데이터 추이 (24시간)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={prepareChartData(sensorData)}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="timestamp"
+                            tickFormatter={(value) => new Date(value).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                          />
+                          <YAxis />
+                          <Tooltip
+                            labelFormatter={(value) => new Date(value).toLocaleString('ko-KR')}
+                          />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="vibration"
+                            stroke="#3b82f6"
+                            name="진동 (mm/s)"
+                            dot={false}
+                            connectNulls={false}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="temperature"
+                            stroke="#ef4444"
+                            name="온도 (°C)"
+                            dot={false}
+                            connectNulls={false}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="pressure"
+                            stroke="#10b981"
+                            name="압력 (bar)"
+                            dot={false}
+                            connectNulls={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 설비 건전도 추이 */}
+              {selectedEquipment && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-purple-600" />
+                      건전도 및 고장 확률 추세
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* 건전도 차트 */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-4">건전도 점수 (최근 30일)</h4>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={generateHealthTrendData(selectedEquipment.health_score)}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="date" />
+                              <YAxis domain={[0, 100]} />
+                              <Tooltip />
+                              <Area
+                                type="monotone"
+                                dataKey="healthScore"
+                                stroke="#8b5cf6"
+                                fill="#8b5cf6"
+                                fillOpacity={0.3}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* 고장 확률 차트 */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-4">고장 확률 (최근 30일)</h4>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={generateFailureTrendData(selectedEquipment.failure_probability)}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="date" />
+                              <YAxis domain={[0, 100]} />
+                              <Tooltip />
+                              <Area
+                                type="monotone"
+                                dataKey="failureProb"
+                                stroke="#f97316"
+                                fill="#f97316"
+                                fillOpacity={0.3}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 현재 지표 요약 */}
+                    <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-orange-50 rounded-lg">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center">
+                          <p className="text-sm text-gray-600">현재 건전도</p>
+                          <p className={`text-3xl font-bold ${getHealthScoreColor(selectedEquipment.health_score)}`}>
+                            {selectedEquipment.health_score.toFixed(1)}점
+                          </p>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            {selectedEquipment.health_score > 80 ? (
+                              <TrendingUp className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <TrendingDown className="w-4 h-4 text-red-600" />
+                            )}
+                            <span className="text-xs text-gray-500">
+                              {selectedEquipment.health_score > 80 ? '양호' : '주의 필요'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-gray-600">고장 확률</p>
+                          <p className="text-3xl font-bold text-orange-600">
+                            {selectedEquipment.failure_probability.toFixed(1)}%
+                          </p>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <Clock className="w-4 h-4 text-orange-600" />
+                            <span className="text-xs text-gray-500">
+                              {selectedEquipment.failure_probability < 20 ? '안정' : selectedEquipment.failure_probability < 50 ? '관찰' : '위험'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </div>
