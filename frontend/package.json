@@ -14,6 +14,7 @@
     "@types/plotly.js": "^3.0.9",
     "axios": "^1.6.0",
     "date-fns": "^2.30.0",
+    "jspdf": "^4.0.0",
     "lucide-react": "^0.294.0",
     "plotly.js": "^3.3.1",
     "react": "^18.2.0",
@@ -23,6 +24,7 @@
     "react-query": "^3.39.3",
     "react-router-dom": "^6.20.0",
     "recharts": "^2.10.0",
+    "xlsx": "^0.18.5",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

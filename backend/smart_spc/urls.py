@@ -21,4 +21,5 @@ urlpatterns = [
     path('api/v1/inspection/', include('inspection.urls')),
     path('api/v1/spc/', include('spc.urls')),
     path('api/v1/qa/', include('qa.urls')),
+    path('api/v1/pm/', include('predictive_maintenance.urls')),
 ]

@@ -23,7 +23,7 @@ import type {
 
 // Axios 인스턴스 생성
 const apiClient: AxiosInstance = axios.create({
-  baseURL: '/api/spc',
+  baseURL: '/api/v1/spc',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',

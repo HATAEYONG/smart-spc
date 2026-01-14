@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import {
   LayoutDashboard, Activity, FileText, Database, Brain, MessageSquare,
   BarChart3, Sigma, Wrench, Settings, DollarSign, ClipboardCheck,
-  ListChecks, Search, Shield, TrendingUp, Lightbulb
+  ListChecks, Search, Shield, TrendingUp, Lightbulb, AlertTriangle
 } from 'lucide-react';
 import { DashboardPage } from './pages/DashboardPage';
 import { QCostClassificationPage } from './pages/QCostClassificationPage';
@@ -38,6 +38,7 @@ import { QASystemPage } from './pages/QASystemPage';
 import { AIAnalysisPage } from './pages/AIAnalysisPage';
 import { BenchmarksPage } from './pages/BenchmarksPage';
 import { RealtimeNotifications } from './components/RealtimeNotifications';
+import { PredictiveMaintenancePage } from './pages/PredictiveMaintenancePage';
 
 // Placeholder pages for new features
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -102,6 +103,12 @@ const menuItems = [
       { path: '/benchmarks', label: '사례·벤치마킹', icon: TrendingUp },
       { path: '/reports', label: '보고서', icon: FileText },
       { path: '/master-data', label: '기본정보', icon: Settings },
+    ]
+  },
+  {
+    category: '설비 관리',
+    items: [
+      { path: '/predictive-maintenance', label: '설비 예지 보전', icon: AlertTriangle },
     ]
   },
 ];
@@ -215,6 +222,9 @@ function App() {
             <Route path="/master-data/systems" element={<MasterDataSystemsPage />} />
             <Route path="/master-data/standards" element={<MasterDataStandardsPage />} />
             <Route path="/master-data/sync" element={<MasterDataSyncPage />} />
+
+            {/* 설비 관리 */}
+            <Route path="/predictive-maintenance" element={<PredictiveMaintenancePage />} />
           </Routes>
         </div>
 
