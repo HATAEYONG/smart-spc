@@ -228,8 +228,8 @@ function App() {
           </Routes>
         </div>
 
-        {/* 실시간 알림 컴포넌트 */}
-        <RealtimeNotifications />
+        {/* 실시간 알림 컴포넌트 - WebSocket 미구현으로 비활성화 */}
+        {/* <RealtimeNotifications /> */}
       </div>
     </Router>
   );

@@ -164,8 +164,8 @@ export const QCostClassificationPage: React.FC = () => {
   );
 
   const renderTree = (nodes: QCostCategory[], level: number = 0): React.ReactNode => {
-    return nodes.map(node => (
-      <div key={node.id} style={{ marginLeft: `${level * 20}px` }}>
+    return nodes.map((node, index) => (
+      <div key={`${node.id}-${level}-${index}`} style={{ marginLeft: `${level * 20}px` }}>
         <div
           className={`flex items-center gap-2 p-2 hover:bg-purple-50 rounded-lg cursor-pointer transition-colors ${
             selectedCategory?.id === node.id ? 'bg-purple-100 border-l-4 border-purple-600' : ''
@@ -212,7 +212,7 @@ export const QCostClassificationPage: React.FC = () => {
         </div>
 
         {node.children && expandedNodes.has(node.id) && (
-          <div className="mt-1">
+          <div className="mt-1" key={`children-${node.id}`}>
             {renderTree(node.children, level + 1)}
           </div>
         )}

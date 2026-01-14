@@ -5,10 +5,7 @@ import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '../components/ui/Select';
 import {
   Plus,
@@ -201,28 +198,18 @@ export const QCostCollectionPage: React.FC = () => {
                 />
               </div>
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="비용 카테고리" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">전체</SelectItem>
-                <SelectItem value="예방비용">예방비용</SelectItem>
-                <SelectItem value="평가비용">평가비용</SelectItem>
-                <SelectItem value="내부 실패비용">내부 실패비용</SelectItem>
-                <SelectItem value="외부 실패비용">외부 실패비용</SelectItem>
-              </SelectContent>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory} className="w-48">
+              <SelectItem value="ALL">전체</SelectItem>
+              <SelectItem value="예방비용">예방비용</SelectItem>
+              <SelectItem value="평가비용">평가비용</SelectItem>
+              <SelectItem value="내부 실패비용">내부 실패비용</SelectItem>
+              <SelectItem value="외부 실패비용">외부 실패비용</SelectItem>
             </Select>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="상태" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">전체</SelectItem>
-                <SelectItem value="PENDING">대기 중</SelectItem>
-                <SelectItem value="VERIFIED">검증 완료</SelectItem>
-                <SelectItem value="APPROVED">승인 완료</SelectItem>
-              </SelectContent>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus} className="w-40">
+              <SelectItem value="ALL">전체</SelectItem>
+              <SelectItem value="PENDING">대기 중</SelectItem>
+              <SelectItem value="VERIFIED">검증 완료</SelectItem>
+              <SelectItem value="APPROVED">승인 완료</SelectItem>
             </Select>
             <Button variant="outline">
               <Filter className="w-4 h-4 mr-2" />

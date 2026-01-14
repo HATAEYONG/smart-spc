@@ -55,7 +55,7 @@ export const qcostService = {
 
   /**
    * 품질비용 입출내역 조회
-   * GET /qcost/entries?from=2026-01-01&to=2026-01-31
+   * GET /qcost/entries?from_date=2026-01-01&to_date=2026-01-31
    */
   async getEntries(
     from: string,
@@ -63,8 +63,8 @@ export const qcostService = {
     params?: PaginationParams
   ): Promise<ApiResponse<PaginatedResponse<QCostEntryDTO>>> {
     return api.get<PaginatedResponse<QCostEntryDTO>>('/qcost/entries', {
-      from,
-      to,
+      from_date: from,
+      to_date: to,
       ...params,
     });
   },
