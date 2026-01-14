@@ -7,7 +7,8 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import {
   LayoutDashboard, Activity, FileText, Database, Brain, MessageSquare,
   BarChart3, Sigma, Wrench, Settings, DollarSign, ClipboardCheck,
-  ListChecks, Search, Shield, TrendingUp, Lightbulb, AlertTriangle
+  ListChecks, Search, Shield, TrendingUp, Lightbulb, AlertTriangle,
+  Package, BookOpen, AlertCircle
 } from 'lucide-react';
 import { DashboardPage } from './pages/DashboardPage';
 import { QCostClassificationPage } from './pages/QCostClassificationPage';
@@ -39,6 +40,10 @@ import { AIAnalysisPage } from './pages/AIAnalysisPage';
 import { BenchmarksPage } from './pages/BenchmarksPage';
 import { RealtimeNotifications } from './components/RealtimeNotifications';
 import { PredictiveMaintenancePage } from './pages/PredictiveMaintenancePage';
+import { EquipmentMasterPage } from './pages/EquipmentMasterPage';
+import { EquipmentPartsPage } from './pages/EquipmentPartsPage';
+import { EquipmentManualPage } from './pages/EquipmentManualPage';
+import { EquipmentRepairHistoryPage } from './pages/EquipmentRepairHistoryPage';
 
 // Placeholder pages for new features
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -108,6 +113,10 @@ const menuItems = [
   {
     category: '설비 관리',
     items: [
+      { path: '/equipment-master', label: '설비 마스터', icon: Wrench },
+      { path: '/equipment-parts', label: '설비 부품', icon: Package },
+      { path: '/equipment-manual', label: '설비 매뉴얼', icon: BookOpen },
+      { path: '/equipment-repair', label: '수리 이력', icon: AlertCircle },
       { path: '/predictive-maintenance', label: '설비 예지 보전', icon: AlertTriangle },
     ]
   },
@@ -224,6 +233,10 @@ function App() {
             <Route path="/master-data/sync" element={<MasterDataSyncPage />} />
 
             {/* 설비 관리 */}
+            <Route path="/equipment-master" element={<EquipmentMasterPage />} />
+            <Route path="/equipment-parts" element={<EquipmentPartsPage />} />
+            <Route path="/equipment-manual" element={<EquipmentManualPage />} />
+            <Route path="/equipment-repair" element={<EquipmentRepairHistoryPage />} />
             <Route path="/predictive-maintenance" element={<PredictiveMaintenancePage />} />
           </Routes>
         </div>
