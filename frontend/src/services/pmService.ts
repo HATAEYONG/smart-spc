@@ -239,6 +239,41 @@ export const pmService = {
       return [];
     }
   },
+
+  getCalendarEvents: async (startDate?: string, endDate?: string, equipmentId?: number): Promise<any[]> => {
+    try {
+      const params: any = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      if (equipmentId) params.equipment = equipmentId;
+
+      const response = await apiClient.get<any[]>('/maintenance-plans/calendar/', { params });
+      return response.data || [];
+    } catch (error: any) {
+      console.error('Calendar events API error:', error);
+      return [];
+    }
+  },
+
+  getUpcomingMaintenance: async (): Promise<MaintenancePlan[]> => {
+    try {
+      const response = await apiClient.get<MaintenancePlan[]>('/maintenance-plans/upcoming/');
+      return response.data?.results || response.data || [];
+    } catch (error: any) {
+      console.error('Upcoming maintenance API error:', error);
+      return [];
+    }
+  },
+
+  getOverdueMaintenance: async (): Promise<MaintenancePlan[]> => {
+    try {
+      const response = await apiClient.get<MaintenancePlan[]>('/maintenance-plans/overdue/');
+      return response.data?.results || response.data || [];
+    } catch (error: any) {
+      console.error('Overdue maintenance API error:', error);
+      return [];
+    }
+  },
 };
 
 export default pmService;

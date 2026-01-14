@@ -320,3 +320,153 @@ class MaintenancePlanViewSet(viewsets.ModelViewSet):
 
         serializer = MaintenanceRecordSerializer(record)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        """캘린더 형태로 예정된 점검 계획 반환"""
+        from datetime import timedelta
+
+        # 날짜 범위 파라미터
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        equipment_id = request.query_params.get('equipment')
+
+        # 기본적으로 다음 30일간의 일정 반환
+        if not start_date:
+            start_date = timezone.now().date()
+        else:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+
+        if not end_date:
+            end_date = start_date + timedelta(days=30)
+        else:
+            from datetime import datetime
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+        # 예방 보전 계획 조회
+        plans = self.queryset.filter(
+            status='ACTIVE',
+            next_due_date__gte=start_date,
+            next_due_date__lte=end_date
+        )
+
+        if equipment_id:
+            plans = plans.filter(equipment_id=equipment_id)
+
+        # 캘린더 이벤트 형식으로 변환
+        events = []
+        for plan in plans:
+            days_until = (plan.next_due_date - timezone.now().date()).days
+
+            # 긴급도에 따른 색상
+            if days_until <= 3:
+                color = '#ef4444'  # 빨강 - 긴급
+                urgency = '긴급'
+            elif days_until <= 7:
+                color = '#f97316'  # 주황 - 주의
+                urgency = '주의'
+            elif days_until <= 14:
+                color = '#eab308'  # 노랑 - 예정
+                urgency = '예정'
+            else:
+                color = '#3b82f6'  # 파랑 - 정상
+                urgency = '정상'
+
+            events.append({
+                'id': f'plan-{plan.id}',
+                'title': f"{plan.equipment.code} - {plan.name}",
+                'start': plan.next_due_date.strftime('%Y-%m-%d'),
+                'end': plan.next_due_date.strftime('%Y-%m-%d'),
+                'backgroundColor': color,
+                'borderColor': color,
+                'extendedProps': {
+                    'type': 'maintenance_plan',
+                    'plan_id': plan.id,
+                    'equipment_code': plan.equipment.code,
+                    'equipment_name': plan.equipment.name,
+                    'equipment_id': plan.equipment.id,
+                    'frequency': plan.frequency_display,
+                    'tasks': plan.tasks,
+                    'estimated_cost': plan.estimated_cost,
+                    'assigned_to': plan.assigned_to_name if hasattr(plan, 'assigned_to_name') else None,
+                    'urgency': urgency,
+                    'days_until': days_until,
+                }
+            })
+
+        # 예정된 점검 이력도 포함
+        records = MaintenanceRecord.objects.filter(
+            scheduled_date__gte=start_date,
+            scheduled_date__lte=end_date,
+            status__in=['SCHEDULED', 'IN_PROGRESS']
+        ).select_related('equipment')
+
+        if equipment_id:
+            records = records.filter(equipment_id=equipment_id)
+
+        for record in records:
+            if record.status == 'SCHEDULED':
+                color = '#8b5cf6'  # 보라 - 예정됨
+            else:
+                color = '#06b6d4'  # 청록 - 진행중
+
+            events.append({
+                'id': f'record-{record.id}',
+                'title': f"{record.equipment.code} - {record.title}",
+                'start': record.scheduled_date.strftime('%Y-%m-%d'),
+                'end': record.scheduled_date.strftime('%Y-%m-%d'),
+                'backgroundColor': color,
+                'borderColor': color,
+                'extendedProps': {
+                    'type': 'maintenance_record',
+                    'record_id': record.id,
+                    'equipment_code': record.equipment.code,
+                    'equipment_name': record.equipment.name,
+                    'equipment_id': record.equipment.id,
+                    'record_type': record.record_type_display,
+                    'status': record.status_display,
+                    'estimated_cost': record.estimated_cost,
+                    'technician': record.technician_name if hasattr(record, 'technician_name') else None,
+                }
+            })
+
+        return Response(events)
+
+    @action(detail=False, methods=['get'])
+    def upcoming(self, request):
+        """다가오는 예방 보전 일정 (7일 이내)"""
+        from datetime import timedelta
+
+        upcoming_date = timezone.now().date() + timedelta(days=7)
+
+        plans = self.queryset.filter(
+            status='ACTIVE',
+            next_due_date__lte=upcoming_date
+        ).order_by('next_due_date')
+
+        page = self.paginate_queryset(plans)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(plans, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def overdue(self, request):
+        """지연된 예방 보전 계획"""
+        today = timezone.now().date()
+
+        plans = self.queryset.filter(
+            status='ACTIVE',
+            next_due_date__lt=today
+        ).order_by('next_due_date')
+
+        page = self.paginate_queryset(plans)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(plans, many=True)
+        return Response(serializer.data)

@@ -42,11 +42,13 @@ export const PredictiveMaintenancePage: React.FC = () => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
+  const [upcomingMaintenance, setUpcomingMaintenance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadDashboard();
     loadEquipment();
+    loadUpcomingMaintenance();
   }, []);
 
   const loadDashboard = async () => {
@@ -66,6 +68,11 @@ export const PredictiveMaintenancePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadUpcomingMaintenance = async () => {
+    const data = await pmService.getUpcomingMaintenance();
+    setUpcomingMaintenance(data);
   };
 
   const loadSensorData = async (equipmentId: number) => {
@@ -720,6 +727,96 @@ export const PredictiveMaintenancePage: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 다가오는 예방 보전 일정 */}
+      {upcomingMaintenance && upcomingMaintenance.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              다가오는 예방 보전 일정 (7일 이내)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {upcomingMaintenance.map((plan) => {
+                const daysUntil = Math.ceil((new Date(plan.next_due_date) - new Date()).getTime() / (1000 * 60 * 60 * 24));
+                const isUrgent = daysUntil <= 3;
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={`border rounded-lg p-4 transition-all ${
+                      isUrgent ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-semibold text-gray-900">{plan.equipment_code} - {plan.name}</h4>
+                          <Badge className={isUrgent ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}>
+                            {isUrgent ? '긴급' : '예정'}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-500">예정일</p>
+                            <p className="font-semibold text-gray-900">
+                              {new Date(plan.next_due_date).toLocaleDateString('ko-KR')}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">남은 기간</p>
+                            <p className={`font-semibold ${daysUntil <= 3 ? 'text-red-600' : daysUntil <= 7 ? 'text-yellow-600' : 'text-blue-600'}`}>
+                              {daysUntil > 0 ? `D-${daysUntil}` : '오늘'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">주기</p>
+                            <p className="font-semibold text-gray-900">{plan.frequency_display}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">담당자</p>
+                            <p className="font-semibold text-gray-900">
+                              {plan.assigned_to_name || '미지정'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {plan.tasks && (
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-500 mb-1">작업 내용</p>
+                            <p className="text-sm text-gray-700 line-clamp-2">{plan.tasks}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button variant="outline" size="sm" className="ml-4">
+                        <Wrench className="w-4 h-4 mr-1" />
+                        완료
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 일정 요약 */}
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">총 {upcomingMaintenance.length}건의 예정된 점검이 있습니다</span>
+                <span className="text-gray-600">
+                  긴급: {upcomingMaintenance.filter((p) => {
+                    const days = Math.ceil((new Date(p.next_due_date) - new Date()).getTime() / (1000 * 60 * 60 * 24));
+                    return days <= 3;
+                  }).length}건
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
