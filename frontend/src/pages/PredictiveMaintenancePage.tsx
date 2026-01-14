@@ -1250,13 +1250,13 @@ export const PredictiveMaintenancePage: React.FC = () => {
       )}
 
       {/* 설비 상세 모달 */}
-      {selectedEquipment && (
-        <Modal
-          isOpen={detailModalOpen}
-          onClose={() => setDetailModalOpen(false)}
-          title="설비 상세 정보"
-          size="lg"
-        >
+      <Modal
+        isOpen={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        title="설비 상세 정보"
+        size="lg"
+      >
+        {selectedEquipment && (
           <div className="space-y-6">
             {/* 기본 정보 */}
             <div className="grid grid-cols-2 gap-4">
@@ -1379,8 +1379,8 @@ export const PredictiveMaintenancePage: React.FC = () => {
               </Button>
             </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };
