@@ -30,7 +30,8 @@ import {
 } from 'recharts';
 import { dashboardService } from '../services/dashboardService';
 import { DashboardSummaryDTO } from '../types/dashboard';
-import { useWebSocket, useSPCAlerts, useKPIUpdates } from '../hooks/useWebSocket';
+// WebSocket 미구현으로 비활성화
+// import { useWebSocket, useSPCAlerts, useKPIUpdates } from '../hooks/useWebSocket';
 import { toast } from 'react-hot-toast';
 
 interface DashboardData {
@@ -116,50 +117,50 @@ export const DashboardPage: React.FC = () => {
     new Date().toISOString().slice(0, 7) // YYYY-MM format
   );
 
-  // WebSocket 연결 상태
-  const { isConnected: wsConnected } = useWebSocket(undefined, {
-    autoConnect: true,
-  });
+  // WebSocket 연결 상태 - WebSocket 미구현으로 비활성화
+  // const { isConnected: wsConnected } = useWebSocket(undefined, {
+  //   autoConnect: true,
+  // });
 
-  // 실시간 SPC 알림 수신
-  useSPCAlerts((alert) => {
-    toast.error(`SPC 알림: ${alert.title || alert.message}`, {
-      duration: 5000,
-      icon: <AlertCircle className="w-5 h-5" />,
-    });
-    // 새 알림을 데이터에 추가
-    if (data) {
-      const newAlert = {
-        id: alert.id || alert.event_id?.toString() || Date.now().toString(),
-        date: alert.created_at || new Date().toISOString().split('T')[0],
-        type: alert.alert_type || alert.type || 'ALERT',
-        severity: alert.severity >= 4 ? 'high' : alert.severity >= 3 ? 'medium' : 'low' as 'high' | 'medium' | 'low',
-        description: alert.title || alert.description || '새로운 알림',
-      };
-      setData({
-        ...data,
-        spcAlerts: [newAlert, ...data.spcAlerts].slice(0, 10), // 최근 10개만 유지
-      });
-    }
-  });
+  // 실시간 SPC 알림 수신 - WebSocket 미구현으로 비활성화
+  // useSPCAlerts((alert) => {
+  //   toast.error(`SPC 알림: ${alert.title || alert.message}`, {
+  //     duration: 5000,
+  //     icon: <AlertCircle className="w-5 h-5" />,
+  //   });
+  //   // 새 알림을 데이터에 추가
+  //   if (data) {
+  //     const newAlert = {
+  //       id: alert.id || alert.event_id?.toString() || Date.now().toString(),
+  //       date: alert.created_at || new Date().toISOString().split('T')[0],
+  //       type: alert.alert_type || alert.type || 'ALERT',
+  //       severity: alert.severity >= 4 ? 'high' : alert.severity >= 3 ? 'medium' : 'low' as 'high' | 'medium' | 'low',
+  //       description: alert.title || alert.description || '새로운 알림',
+  //     };
+  //     setData({
+  //       ...data,
+  //       spcAlerts: [newAlert, ...data.spcAlerts].slice(0, 10), // 최근 10개만 유지
+  //     });
+  //   }
+  // });
 
-  // 실시간 KPI 업데이트 수신
-  useKPIUpdates((kpi) => {
-    if (data) {
-      setData({
-        ...data,
-        copq: {
-          ...data.copq,
-          total: kpi.total_copq ?? data.copq.total,
-          rate: kpi.copq_rate ? kpi.copq_rate * 100 : data.copq.rate,
-        },
-        oosCount: {
-          ...data.oosCount,
-          total: kpi.oos_count ?? data.oosCount.total,
-        },
-      });
-    }
-  });
+  // 실시간 KPI 업데이트 수신 - WebSocket 미구현으로 비활성화
+  // useKPIUpdates((kpi) => {
+  //   if (data) {
+  //     setData({
+  //       ...data,
+  //       copq: {
+  //         ...data.copq,
+  //         total: kpi.total_copq ?? data.copq.total,
+  //         rate: kpi.copq_rate ? kpi.copq_rate * 100 : data.copq.rate,
+  //       },
+  //       oosCount: {
+  //         ...data.oosCount,
+  //         total: kpi.oos_count ?? data.oosCount.total,
+  //       },
+  //     });
+  //   }
+  // });
 
   useEffect(() => {
     fetchDashboardData();

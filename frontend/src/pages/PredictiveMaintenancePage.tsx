@@ -1284,15 +1284,15 @@ export const PredictiveMaintenancePage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-green-50 p-4 rounded-lg">
                 <div className="text-sm text-green-600 font-medium mb-2">건전도 점수</div>
-                <div className={`text-4xl font-bold ${getHealthScoreColor(selectedEquipment.health_score)}`}>
-                  {selectedEquipment.health_score.toFixed(1)}
+                <div className={`text-4xl font-bold ${getHealthScoreColor(selectedEquipment.health_score || 0)}`}>
+                  {(selectedEquipment.health_score || 0).toFixed(1)}
                 </div>
                 <div className="text-xs text-green-500 mt-1">/ 100점</div>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg">
                 <div className="text-sm text-orange-600 font-medium mb-2">고장 확률</div>
                 <div className="text-4xl font-bold text-orange-600">
-                  {selectedEquipment.failure_probability.toFixed(1)}%
+                  {(selectedEquipment.failure_probability || 0).toFixed(1)}%
                 </div>
                 <div className="text-xs text-orange-500 mt-1">향후 30일</div>
               </div>
@@ -1306,11 +1306,11 @@ export const PredictiveMaintenancePage: React.FC = () => {
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: `${selectedEquipment.availability_current}%` }}
+                      style={{ width: `${selectedEquipment.availability_current || 0}%` }}
                     />
                   </div>
                   <span className="text-sm font-semibold text-blue-600 w-16 text-right">
-                    {selectedEquipment.availability_current.toFixed(1)}%
+                    {(selectedEquipment.availability_current || 0).toFixed(1)}%
                   </span>
                 </div>
               </div>
@@ -1320,11 +1320,11 @@ export const PredictiveMaintenancePage: React.FC = () => {
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-green-500 h-2 rounded-full"
-                      style={{ width: `${selectedEquipment.performance_current}%` }}
+                      style={{ width: `${selectedEquipment.performance_current || 0}%` }}
                     />
                   </div>
                   <span className="text-sm font-semibold text-green-600 w-16 text-right">
-                    {selectedEquipment.performance_current.toFixed(1)}%
+                    {(selectedEquipment.performance_current || 0).toFixed(1)}%
                   </span>
                 </div>
               </div>
