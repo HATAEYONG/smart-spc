@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Plot from 'react-plotly.js';
-import { Spinner } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface ForecastDataPoint {
   timestamp: string;
@@ -70,10 +70,10 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
         y: upperBound,
         type: 'scatter',
         mode: 'lines',
-        line: { width: 0 },
+        line: { color: 'transparent', width: 0 },
         showlegend: false,
         hoverinfo: 'skip'
-      });
+      } as any);
 
       traces.push({
         x: timestamps,
@@ -82,10 +82,10 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
         mode: 'lines',
         fill: 'tonexty',
         fillcolor: 'rgba(16, 185, 129, 0.2)',
-        line: { width: 0 },
+        line: { color: 'transparent', width: 0 },
         name: '신뢰 구간',
         hoverinfo: 'skip'
-      });
+      } as any);
     }
 
     setChartData(traces);
@@ -95,7 +95,7 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Spinner className="animate-spin h-8 w-8 text-blue-600" />
+        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
         <span className="ml-2">차트 로딩 중...</span>
       </div>
     );

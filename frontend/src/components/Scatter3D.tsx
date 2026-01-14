@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Plot from 'react-plotly.js';
-import { Spinner } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface Scatter3DDataPoint {
   x: number;
@@ -85,7 +85,7 @@ export const Scatter3D: React.FC<Scatter3DProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Spinner className="animate-spin h-8 w-8 text-blue-600" />
+        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
         <span className="ml-2">차트 로딩 중...</span>
       </div>
     );

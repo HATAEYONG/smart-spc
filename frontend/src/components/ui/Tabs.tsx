@@ -9,12 +9,16 @@ interface TabsProps {
 
 interface TabsListProps {
   children: React.ReactNode;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
   className?: string;
 }
 
 interface TabsTriggerProps {
   value: string;
   children: React.ReactNode;
+  isActive?: boolean;
+  onClick?: () => void;
   className?: string;
 }
 
@@ -24,7 +28,11 @@ interface TabsContentProps {
   className?: string;
 }
 
-export const Tabs: React.FC<TabsProps> = ({ defaultValue, children, className = '' }) => {
+export const Tabs: React.FC<TabsProps> & {
+  List: React.FC<TabsListProps>;
+  Trigger: React.FC<TabsTriggerProps>;
+  Content: React.FC<TabsContentProps>;
+} = ({ defaultValue, children, className = '' }) => {
   const [activeTab, setActiveTab] = useState(defaultValue || '');
 
   const childrenArray = React.Children.toArray(children);
@@ -46,21 +54,22 @@ export const Tabs: React.FC<TabsProps> = ({ defaultValue, children, className = 
   );
 };
 
-Tabs.List = function TabsList({ children, activeTab, onTabChange, className = '' }: any) {
+const TabsList: React.FC<TabsListProps> = ({ children, activeTab, onTabChange, className = '' }) => {
   return (
     <div className={`inline-flex h-10 items-center justify-center rounded-md bg-gray-100 p-1 ${className}`}>
       {React.Children.map(children, (child: any) =>
         React.cloneElement(child, {
           isActive: child.props.value === activeTab,
-          onClick: () => onTabChange(child.props.value),
+          onClick: () => onTabChange?.(child.props.value),
         })
       )}
     </div>
   );
 };
-Tabs.List.displayName = 'TabsList';
+TabsList.displayName = 'TabsList';
+Tabs.List = TabsList;
 
-Tabs.Trigger = function TabsTrigger({ value, children, isActive = false, onClick, className = '' }: any) {
+const TabsTrigger: React.FC<TabsTriggerProps> = ({ value, children, isActive = false, onClick, className = '' }) => {
   return (
     <button
       onClick={onClick}
@@ -74,13 +83,17 @@ Tabs.Trigger = function TabsTrigger({ value, children, isActive = false, onClick
     </button>
   );
 };
-Tabs.Trigger.displayName = 'TabsTrigger';
+TabsTrigger.displayName = 'TabsTrigger';
+Tabs.Trigger = TabsTrigger;
 
-Tabs.Content = function TabsContent({ value, children, className = '' }: TabsContentProps) {
+const TabsContent: React.FC<TabsContentProps> = ({ value, children, className = '' }) => {
   return (
     <div className={className}>
       {children}
     </div>
   );
 };
-Tabs.Content.displayName = 'TabsContent';
+TabsContent.displayName = 'TabsContent';
+Tabs.Content = TabsContent;
+
+export { TabsList, TabsTrigger, TabsContent };

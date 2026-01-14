@@ -294,14 +294,16 @@ export const RunRuleViolationsChart: React.FC<RunRuleViolationsChartProps> = ({
                     <td className="px-4 py-2 whitespace-nowrap text-sm">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
-                          violation.severity === 'HIGH'
+                          violation.severity === 4
                             ? 'bg-red-100 text-red-800'
-                            : violation.severity === 'MEDIUM'
+                            : violation.severity === 3
+                            ? 'bg-orange-100 text-orange-800'
+                            : violation.severity === 2
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-blue-100 text-blue-800'
                         }`}
                       >
-                        {violation.severity}
+                        {violation.severity === 4 ? '매우 높음' : violation.severity === 3 ? '높음' : violation.severity === 2 ? '중간' : '낮음'}
                       </span>
                     </td>
                   </tr>

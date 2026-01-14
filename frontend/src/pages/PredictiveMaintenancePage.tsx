@@ -32,25 +32,19 @@ export const PredictiveMaintenancePage: React.FC = () => {
   }, []);
 
   const loadDashboard = async () => {
-    try {
-      const data = await pmService.getDashboard();
-      setDashboardData(data);
-    } catch (error) {
-      console.error('Failed to load dashboard:', error);
-    }
+    const data = await pmService.getDashboard();
+    setDashboardData(data);
   };
 
   const loadEquipment = async () => {
     try {
       setLoading(true);
-      const data = await pmService.getEquipment();
-      setEquipment(data.results);
-      if (data.results.length > 0) {
-        setSelectedEquipment(data.results[0]);
-        loadSensorData(data.results[0].id);
+      const equipmentList = await pmService.getEquipment();
+      setEquipment(equipmentList);
+      if (equipmentList.length > 0) {
+        setSelectedEquipment(equipmentList[0]);
+        loadSensorData(equipmentList[0].id);
       }
-    } catch (error) {
-      console.error('Failed to load equipment:', error);
     } finally {
       setLoading(false);
     }
@@ -128,7 +122,7 @@ export const PredictiveMaintenancePage: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-500">전체 설비</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">
-                    {dashboardData.total_equipment}
+                    {dashboardData?.total_equipment || 0}
                   </p>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-full">
@@ -144,7 +138,7 @@ export const PredictiveMaintenancePage: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-500">가동 중</p>
                   <p className="text-3xl font-bold text-green-600 mt-1">
-                    {dashboardData.operational}
+                    {dashboardData?.operational || 0}
                   </p>
                 </div>
                 <div className="bg-green-100 p-3 rounded-full">
@@ -160,7 +154,7 @@ export const PredictiveMaintenancePage: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-500">점검 중</p>
                   <p className="text-3xl font-bold text-yellow-600 mt-1">
-                    {dashboardData.maintenance}
+                    {dashboardData?.maintenance || 0}
                   </p>
                 </div>
                 <div className="bg-yellow-100 p-3 rounded-full">
@@ -176,7 +170,7 @@ export const PredictiveMaintenancePage: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-500">고장 위험</p>
                   <p className="text-3xl font-bold text-red-600 mt-1">
-                    {dashboardData.high_risk}
+                    {dashboardData?.high_risk || 0}
                   </p>
                 </div>
                 <div className="bg-red-100 p-3 rounded-full">
@@ -198,7 +192,7 @@ export const PredictiveMaintenancePage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {equipment.map((eq) => (
+                {equipment && equipment.length > 0 ? equipment.map((eq) => (
                   <div
                     key={eq.id}
                     className={`p-4 rounded-lg border cursor-pointer transition-all ${
@@ -227,7 +221,12 @@ export const PredictiveMaintenancePage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Settings className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p>설비 데이터가 없습니다.</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -300,9 +299,9 @@ export const PredictiveMaintenancePage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {['VIBRATION', 'TEMPERATURE', 'PRESSURE'].map((sensorType) => {
-                      const typeData = sensorData.filter(d => d.sensor_type === sensorType);
-                      const latest = typeData[0];
+                    {sensorData && ['VIBRATION', 'TEMPERATURE', 'PRESSURE'].map((sensorType) => {
+                      const typeData = sensorData.filter((d: any) => d.sensor_type === sensorType);
+                      const latest = typeData && typeData[0];
                       if (!latest) return null;
 
                       const getIcon = (type: string) => {
@@ -353,7 +352,7 @@ export const PredictiveMaintenancePage: React.FC = () => {
       </div>
 
       {/* 긴급 예측 알림 */}
-      {dashboardData && dashboardData.critical_predictions.length > 0 && (
+      {dashboardData && dashboardData.critical_predictions && dashboardData.critical_predictions.length > 0 && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-800">

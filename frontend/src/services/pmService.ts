@@ -117,67 +117,127 @@ export interface PMDashboardData {
 export const pmService = {
   // 대시보드
   getDashboard: async (): Promise<PMDashboardData> => {
-    const response = await apiClient.get<PMDashboardData>('/equipment/dashboard/');
-    return response.data;
+    try {
+      const response = await apiClient.get<PMDashboardData>('/equipment/dashboard/');
+      return response.data;
+    } catch (error: any) {
+      console.error('Dashboard API error:', error);
+      // 기본값 반환
+      return {
+        total_equipment: 0,
+        operational: 0,
+        maintenance: 0,
+        breakdown: 0,
+        high_risk: 0,
+        avg_availability: 0,
+        recent_sensor_data: [],
+        critical_predictions: [],
+      };
+    }
   },
 
   // 설비
-  getEquipment: async (params?: any): Promise<{ results: Equipment[]; count: number }> => {
-    const response = await apiClient.get('/equipment/', { params });
-    return response.data;
+  getEquipment: async (params?: any): Promise<Equipment[]> => {
+    try {
+      const response = await apiClient.get<{ results: Equipment[]; count: number }>('/equipment/', { params });
+      return response.data?.results || response.data || [];
+    } catch (error: any) {
+      console.error('Equipment API error:', error);
+      return [];
+    }
   },
 
-  getEquipmentDetail: async (id: number): Promise<Equipment> => {
-    const response = await apiClient.get<Equipment>(`/equipment/${id}/`);
-    return response.data;
+  getEquipmentDetail: async (id: number): Promise<Equipment | null> => {
+    try {
+      const response = await apiClient.get<Equipment>(`/equipment/${id}/`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Equipment detail API error:', error);
+      return null;
+    }
   },
 
   // 센서 데이터
   getSensorData: async (equipmentId: number, hours: number = 24, sensorType?: string): Promise<SensorData[]> => {
-    const params: any = { hours };
-    if (sensorType) params.sensor_type = sensorType;
-    const response = await apiClient.get<SensorData[]>(`/equipment/${equipmentId}/sensor_data/`, { params });
-    return response.data;
+    try {
+      const params: any = { hours };
+      if (sensorType) params.sensor_type = sensorType;
+      const response = await apiClient.get<SensorData[]>(`/equipment/${equipmentId}/sensor_data/`, { params });
+      return response.data || [];
+    } catch (error: any) {
+      console.error('Sensor data API error:', error);
+      return [];
+    }
   },
 
   getLatestSensorData: async (equipmentId?: number, sensorType?: string): Promise<SensorData[]> => {
-    const params: any = {};
-    if (equipmentId) params.equipment = equipmentId;
-    if (sensorType) params.sensor_type = sensorType;
-    const response = await apiClient.get<SensorData[]>('/sensor-data/latest/', { params });
-    return response.data;
+    try {
+      const params: any = {};
+      if (equipmentId) params.equipment = equipmentId;
+      if (sensorType) params.sensor_type = sensorType;
+      const response = await apiClient.get<SensorData[]>('/sensor-data/latest/', { params });
+      return response.data || [];
+    } catch (error: any) {
+      console.error('Latest sensor data API error:', error);
+      return [];
+    }
   },
 
   // 점검 이력
   getMaintenanceRecords: async (equipmentId?: number): Promise<MaintenanceRecord[]> => {
-    const params: any = {};
-    if (equipmentId) params.equipment = equipmentId;
-    const response = await apiClient.get<MaintenanceRecord[]>('/maintenance-records/', { params });
-    return response.data;
+    try {
+      const params: any = {};
+      if (equipmentId) params.equipment = equipmentId;
+      const response = await apiClient.get<MaintenanceRecord[]>('/maintenance-records/', { params });
+      return response.data?.results || response.data || [];
+    } catch (error: any) {
+      console.error('Maintenance records API error:', error);
+      return [];
+    }
   },
 
   // 고장 예측
   getFailurePredictions: async (equipmentId?: number): Promise<FailurePrediction[]> => {
-    const params: any = {};
-    if (equipmentId) params.equipment = equipmentId;
-    const response = await apiClient.get<FailurePrediction[]>('/failure-predictions/', { params });
-    return response.data;
+    try {
+      const params: any = {};
+      if (equipmentId) params.equipment = equipmentId;
+      const response = await apiClient.get<FailurePrediction[]>('/failure-predictions/', { params });
+      return response.data?.results || response.data || [];
+    } catch (error: any) {
+      console.error('Failure predictions API error:', error);
+      return [];
+    }
   },
 
   getCriticalPredictions: async (): Promise<FailurePrediction[]> => {
-    const response = await apiClient.get<FailurePrediction[]>('/failure-predictions/critical/');
-    return response.data;
+    try {
+      const response = await apiClient.get<FailurePrediction[]>('/failure-predictions/critical/');
+      return response.data || [];
+    } catch (error: any) {
+      console.error('Critical predictions API error:', error);
+      return [];
+    }
   },
 
-  acknowledgePrediction: async (id: number): Promise<FailurePrediction> => {
-    const response = await apiClient.post<FailurePrediction>(`/failure-predictions/${id}/acknowledge/`);
-    return response.data;
+  acknowledgePrediction: async (id: number): Promise<FailurePrediction | null> => {
+    try {
+      const response = await apiClient.post<FailurePrediction>(`/failure-predictions/${id}/acknowledge/`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Acknowledge prediction API error:', error);
+      return null;
+    }
   },
 
   // 예방 보전 계획
   getMaintenancePlans: async (): Promise<MaintenancePlan[]> => {
-    const response = await apiClient.get<MaintenancePlan[]>('/maintenance-plans/');
-    return response.data;
+    try {
+      const response = await apiClient.get<MaintenancePlan[]>('/maintenance-plans/');
+      return response.data?.results || response.data || [];
+    } catch (error: any) {
+      console.error('Maintenance plans API error:', error);
+      return [];
+    }
   },
 };
 

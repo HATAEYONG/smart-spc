@@ -68,9 +68,9 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({ pr
 
         {widget.visible && (
           <>
-            {widget.type === 'xbar-r-chart' && <XBarRChart productId={productId} />}
+            {widget.type === 'xbar-r-chart' && <XBarRChart data={[]} limits={{}} />}
             {widget.type === 'process-capability' && <ProcessCapabilityPage />}
-            {widget.type === 'run-rule-violations' && <RunRuleViolationsChart productId={productId} />}
+            {widget.type === 'run-rule-violations' && <RunRuleViolationsChart measurements={[]} violations={[]} limits={{ucl: 0, cl: 0, lcl: 0}} />}
             {widget.type === 'quality-alerts' && (
               <div className="text-gray-600 dark:text-gray-300">
                 품질 경고 위젯 (개발 중)

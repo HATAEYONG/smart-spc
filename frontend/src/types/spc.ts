@@ -158,6 +158,8 @@ export interface RunRuleViolation {
   measurement: number;
   measurement_value?: number;
   product_code?: string;
+  point_index?: number;
+  subgroup_number?: number;
 
   rule_type: 'RULE_1' | 'RULE_2' | 'RULE_3' | 'RULE_4' | 'RULE_5' | 'RULE_6' | 'RULE_7' | 'RULE_8';
   description: string;
