@@ -293,32 +293,108 @@ python manage.py create_sample_data --clear
 
 ### 주요 API 엔드포인트
 
+#### SPC (Statistical Process Control) API
+
 ```
 # 제품 관리
 GET    /api/products/              # 제품 목록
 POST   /api/products/              # 제품 생성
 GET    /api/products/{id}/         # 제품 상세
+PUT    /api/products/{id}/         # 제품 수정
+DELETE /api/products/{id}/         # 제품 삭제
+
+# 검사 계획
+GET    /api/inspection-plans/      # 검사 계획 목록
+POST   /api/inspection-plans/      # 검사 계획 생성
+GET    /api/inspection-plans/{id}/ # 검사 계획 상세
 
 # 품질 측정
 GET    /api/measurements/          # 측정 데이터 목록
 POST   /api/measurements/          # 측정 데이터 생성
 GET    /api/measurements/{id}/     # 측정 데이터 상세
+GET    /api/measurements/bulk-upload/  # 대량 업로드
 
 # 관리도
 GET    /api/control-charts/        # 관리도 목록
 GET    /api/control-charts/{id}/   # 관리도 상세
+GET    /api/control-charts/{id}/data/  # 관리도 데이터 포인트
 
 # 공정능력
 GET    /api/capabilities/          # 공정능력 목록
 GET    /api/capabilities/{id}/     # 공정능력 상세
+POST   /api/capabilities/analyze/  # 공정능력 분석 요청
 
-# AI 분석
-POST   /api/ai/analyze/            # LLM 분석 요청
-POST   /api/ai/forecast/           # 예측 요청
+# Run Rule 위반
+GET    /api/violations/            # 위반 목록
+GET    /api/violations/{id}/       # 위반 상세
 
 # 알림
 GET    /api/alerts/                # 알림 목록
+GET    /api/alerts/{id}/           # 알림 상세
 PATCH  /api/alerts/{id}/acknowledge  # 알림 확인
+PATCH  /api/alerts/{id}/resolve    # 알림 해결
+GET    /api/alerts/dashboard/      # 알림 대시보드 요약
+```
+
+#### Predictive Maintenance API
+
+```
+# 설비 관리
+GET    /api/equipment/             # 설비 목록
+POST   /api/equipment/             # 설비 생성
+GET    /api/equipment/{id}/        # 설비 상세
+GET    /api/equipment/{id}/health/ # 설비 건전도
+
+# 센서 데이터
+GET    /api/sensor-data/           # 센서 데이터 목록
+POST   /api/sensor-data/           # 센서 데이터 생성
+GET    /api/sensor-data/latest/    # 최신 센서 데이터
+GET    /api/sensor-data/statistics/ # 센서 데이터 통계
+
+# 예방 보전 계획
+GET    /api/maintenance-plans/     # 보전 계획 목록
+POST   /api/maintenance-plans/     # 보전 계획 생성
+GET    /api/maintenance-plans/{id}/ # 보전 계획 상세
+GET    /api/maintenance-plans/calendar/  # 📅 캘린더 형태 일정
+GET    /api/maintenance-plans/upcoming/  # 📅 다가오는 일정 (7일 이내)
+GET    /api/maintenance-plans/overdue/   # 📅 지연된 계획
+
+# 보전 기록
+GET    /api/maintenance-records/   # 보전 기록 목록
+POST   /api/maintenance-records/   # 보전 기록 생성
+GET    /api/maintenance-records/{id}/  # 보전 기록 상세
+
+# 고장 예측
+GET    /api/failure-predictions/   # 고장 예측 목록
+POST   /api/failure-predictions/predict/  # 예측 요청
+```
+
+#### AI Analysis API
+
+```
+# AI 분석
+POST   /api/ai/analyze/            # LLM 분석 요청
+POST   /api/ai/forecast/           # 예측 요청
+GET    /api/ai/cache/              # 캐시된 분석 결과
+DELETE /api/ai/cache/{id}/         # 캐시 삭제
+```
+
+#### Quality Cost API
+
+```
+# 품질 비용
+GET    /api/quality-costs/         # 품질 비용 목록
+POST   /api/quality-costs/         # 품질 비용 생성
+GET    /api/quality-costs/summary/ # 품질 비용 요약
+```
+
+#### 인증 API
+
+```
+POST   /api/auth/register/         # 회원가입
+POST   /api/auth/login/            # 로그인
+POST   /api/auth/token/refresh/    # 토큰 갱신
+POST   /api/auth/logout/           # 로그아웃
 ```
 
 ---
@@ -331,6 +407,519 @@ PATCH  /api/alerts/{id}/acknowledge  # 알림 확인
 
 ### Postman Collection
 `docs/postman_collection.json` 파일 참조
+
+### 상세 API 명세서
+
+#### 기본 정보
+
+**Base URL**: `http://localhost:8000/api`
+
+**인증 방식**: JWT (JSON Web Token)
+```
+Authorization: Bearer <access_token>
+```
+
+**응답 형식**: JSON
+```
+{
+  "count": 100,
+  "next": "http://api.example.com/resource/?page=2",
+  "previous": null,
+  "results": [...]
+}
+```
+
+---
+
+#### Predictive Maintenance Calendar API
+
+**1. 캘린더 형태 일정 조회**
+
+```http
+GET /api/maintenance-plans/calendar/?start_date=2026-01-01&end_date=2026-01-31&equipment=1
+```
+
+**Query Parameters:**
+- `start_date` (string, optional): 조회 시작日期 (YYYY-MM-DD)
+- `end_date` (string, optional): 조회 종료日期 (YYYY-MM-DD)
+- `equipment` (integer, optional): 설비 ID 필터
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "title": "정기 점검 - CNC 머신 A",
+    "start": "2026-01-15",
+    "end": "2026-01-15",
+    "backgroundColor": "#ef4444",
+    "borderColor": "#dc2626",
+    "equipment": 1,
+    "plan_type": "DAILY",
+    "frequency_display": "매일",
+    "days_remaining": 2,
+    "is_overdue": false
+  }
+]
+```
+
+**색상 코드 (우선순위):**
+- `#ef4444` (빨강): 긴급 (D-3 이내)
+- `#f97316` (주황): 주의 (D-7 이내)
+- `#eab308` (노랑): 예약됨 (D-14 이내)
+- `#3b82f6` (파랑): 정상 (D-15 이상)
+
+---
+
+**2. 다가오는 예방 보전 일정**
+
+```http
+GET /api/maintenance-plans/upcoming/
+```
+
+**설명**: 향후 7일 이내의 예방 보전 일정 반환
+
+**Response:**
+```json
+[
+  {
+    "id": 5,
+    "equipment": 1,
+    "equipment_name": "CNC 머신 A",
+    "plan_name": "주간 정기 점검",
+    "plan_type": "WEEKLY",
+    "frequency_display": "매주",
+    "next_due_date": "2026-01-16T10:00:00Z",
+    "days_remaining": 2,
+    "assigned_to": "홍길동",
+    "task_description": "오일 교체, 베어링 점검",
+    "priority": "HIGH",
+    "estimated_duration": 120
+  }
+]
+```
+
+---
+
+**3. 지연된 예방 보전 계획**
+
+```http
+GET /api/maintenance-plans/overdue/
+```
+
+**설명**: 기한이 지난 미완료 보전 계획 반환
+
+**Response:**
+```json
+[
+  {
+    "id": 8,
+    "equipment": 3,
+    "equipment_name": "프레스 기계 B",
+    "plan_name": "월간 안전 점검",
+    "plan_type": "MONTHLY",
+    "due_date": "2026-01-10T10:00:00Z",
+    "days_overdue": 4,
+    "assigned_to": "김철수",
+    "priority": "URGENT"
+  }
+]
+```
+
+---
+
+#### SPC 품질관리 API
+
+**1. 제품 목록 조회**
+
+```http
+GET /api/products/?page=1&page_size=20&is_active=true
+```
+
+**Query Parameters:**
+- `page` (integer, optional): 페이지 번호 (default: 1)
+- `page_size` (integer, optional): 페이지당 결과 수 (default: 20)
+- `is_active` (boolean, optional): 활성화된 제품만 필터
+- `search` (string, optional): 제품명/코드 검색
+
+**Response:**
+```json
+{
+  "count": 45,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "product_code": "PRD-001",
+      "product_name": "자동차 부품 A",
+      "usl": 10.5,
+      "lsl": 9.5,
+      "target_value": 10.0,
+      "unit": "mm",
+      "description": "엔진 부품",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00Z",
+      "updated_at": "2026-01-14T12:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+**2. 품질 측정 데이터 생성**
+
+```http
+POST /api/measurements/
+```
+
+**Request Body:**
+```json
+{
+  "product": 1,
+  "inspection_plan": 5,
+  "measurement_value": 10.23,
+  "sample_number": 1,
+  "subgroup_number": 100,
+  "measured_at": "2026-01-14T10:30:00Z",
+  "measured_by": "operator_1",
+  "machine_id": "MACHINE-A",
+  "lot_number": "LOT-2026-0114",
+  "remarks": "정상 측정"
+}
+```
+
+**Response:**
+```json
+{
+  "id": 5001,
+  "product": 1,
+  "product_name": "자동차 부품 A",
+  "product_code": "PRD-001",
+  "measurement_value": 10.23,
+  "is_within_spec": true,
+  "is_within_control": true,
+  "created_at": "2026-01-14T10:30:00Z"
+}
+```
+
+---
+
+**3. 관리도 데이터 조회**
+
+```http
+GET /api/control-charts/{id}/data/?limit=50
+```
+
+**Path Parameters:**
+- `id` (integer, required): 관리도 ID
+
+**Query Parameters:**
+- `limit` (integer, optional): 반환할 데이터 포인트 수 (default: 50)
+
+**Response:**
+```json
+{
+  "chart_type": "XBAR_R",
+  "limits": {
+    "xbar": {
+      "ucl": 10.45,
+      "cl": 10.02,
+      "lcl": 9.59
+    },
+    "r": {
+      "ucl": 0.82,
+      "cl": 0.35,
+      "lcl": 0.00
+    }
+  },
+  "data": [
+    {
+      "subgroup_number": 95,
+      "xbar": 10.05,
+      "r": 0.42,
+      "measured_at": "2026-01-14T09:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+**4. 공정능력 분석 요청**
+
+```http
+POST /api/capabilities/analyze/
+```
+
+**Request Body:**
+```json
+{
+  "product": 1,
+  "analysis_start": "2026-01-01T00:00:00Z",
+  "analysis_end": "2026-01-14T23:59:59Z",
+  "confidence_level": 0.95
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "product": 1,
+  "product_name": "자동차 부품 A",
+  "cp": 1.67,
+  "cpk": 1.42,
+  "cpu": 1.55,
+  "cpl": 1.28,
+  "mean": 10.02,
+  "std_deviation": 0.12,
+  "sample_size": 500,
+  "is_normal": true,
+  "normality_test_statistic": 0.023,
+  "normality_test_p_value": 0.48,
+  "analysis_start": "2026-01-01T00:00:00Z",
+  "analysis_end": "2026-01-14T23:59:59Z",
+  "analyzed_at": "2026-01-14T15:00:00Z"
+}
+```
+
+---
+
+**5. 알림 대시보드 요약**
+
+```http
+GET /api/alerts/dashboard/
+```
+
+**Response:**
+```json
+{
+  "total": 25,
+  "by_priority": {
+    "urgent": 3,
+    "high": 7,
+    "medium": 10,
+    "low": 5
+  },
+  "by_status": {
+    "new": 8,
+    "acknowledged": 5,
+    "investigating": 4,
+    "resolved": 6,
+    "closed": 2
+  },
+  "by_type": {
+    "OUT_OF_SPEC": 5,
+    "OUT_OF_CONTROL": 8,
+    "RUN_RULE": 7,
+    "TREND": 3,
+    "PREDICTION": 2
+  }
+}
+```
+
+---
+
+#### AI 분석 API
+
+**1. LLM 기반 품질 분석**
+
+```http
+POST /api/ai/analyze/
+```
+
+**Request Body:**
+```json
+{
+  "product": 1,
+  "analysis_type": "control_chart",
+  "time_range": "7d",
+  "ai_provider": "openai",
+  "include_recommendations": true
+}
+```
+
+**Response:**
+```json
+{
+  "id": "analysis_123",
+  "product": 1,
+  "analysis_type": "control_chart",
+  "summary": "최근 7일간 공정은 안정적인 상태를 유지하고 있습니다.",
+  "key_findings": [
+    "모든 데이터 포인트가 관리 한계 내에 위치",
+    "Cpk 지수 1.42로 우수한 공정능력 달성"
+  ],
+  "recommendations": [
+    "현재 공정 파라미터 유지 권장",
+    "주간 보고서에 포함될 수 있는 우수 사례"
+  ],
+  "charts_used": ["XBAR_R"],
+  "analyzed_at": "2026-01-14T15:30:00Z",
+  "cache_id": "cache_456"
+}
+```
+
+---
+
+**2. 시계열 예측**
+
+```http
+POST /api/ai/forecast/
+```
+
+**Request Body:**
+```json
+{
+  "product": 1,
+  "forecast_periods": 10,
+  "algorithms": ["sma", "exponential_smoothing", "linear_trend", "combined"],
+  "confidence_interval": 0.95
+}
+```
+
+**Response:**
+```json
+{
+  "product": 1,
+  "product_name": "자동차 부품 A",
+  "forecast_data": [
+    {
+      "period": 101,
+      "forecast": 10.05,
+      "lower_bound": 9.82,
+      "upper_bound": 10.28
+    }
+  ],
+  "anomalies": [
+    {
+      "period": 95,
+      "value": 11.2,
+      "z_score": 3.4,
+      "type": "SPIKE"
+    }
+  ],
+  "algorithm_performance": {
+    "sma": { "mse": 0.023 },
+    "combined": { "mse": 0.018 }
+  }
+}
+```
+
+---
+
+#### WebSocket API
+
+**연결:**
+
+```javascript
+const ws = new WebSocket('ws://localhost:8000/ws/quality-updates/');
+
+ws.onopen = () => {
+  // 인증 토큰 전송
+  ws.send(JSON.stringify({
+    type: 'authenticate',
+    token: 'your_jwt_token'
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+```
+
+**이벤트 타입:**
+
+1. **새 측정 데이터**
+```json
+{
+  "type": "new_measurement",
+  "data": {
+    "product": 1,
+    "value": 10.23,
+    "is_out_of_spec": false
+  }
+}
+```
+
+2. **알림 발생**
+```json
+{
+  "type": "new_alert",
+  "data": {
+    "alert_id": 123,
+    "priority": "HIGH",
+    "message": "규격 이탈 감지",
+    "product": "PRD-001"
+  }
+}
+```
+
+3. **Run Rule 위반**
+```json
+{
+  "type": "violation_detected",
+  "data": {
+    "rule": "RULE_1",
+    "description": "1개 포인트가 3시그마 밖에 위치",
+    "chart": 5
+  }
+}
+```
+
+---
+
+#### 에러 응답
+
+**400 Bad Request**
+```json
+{
+  "detail": "Validation error",
+  "errors": {
+    "measurement_value": ["This field is required."],
+    "product": ["Invalid product ID."]
+  }
+}
+```
+
+**401 Unauthorized**
+```json
+{
+  "detail": "Authentication credentials were not provided."
+}
+```
+
+**403 Forbidden**
+```json
+{
+  "detail": "You do not have permission to perform this action."
+}
+```
+
+**404 Not Found**
+```json
+{
+  "detail": "Not found."
+}
+```
+
+**429 Rate Limit Exceeded**
+```json
+{
+  "detail": "Rate limit exceeded. Try again in 60 seconds."
+}
+```
+
+**500 Internal Server Error**
+```json
+{
+  "detail": "Internal server error. Please contact support.",
+  "error_code": "ERR-5001"
+}
+```
 
 ---
 

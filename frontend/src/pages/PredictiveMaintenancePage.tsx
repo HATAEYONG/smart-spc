@@ -7,6 +7,7 @@ import {
 } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 import {
   Activity,
   AlertTriangle,
@@ -20,6 +21,13 @@ import {
   BarChart3,
   LineChart as LineChartIcon,
   Clock,
+  X,
+  Info,
+  GitCompare,
+  Gauge,
+  History,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   LineChart,
@@ -44,6 +52,14 @@ export const PredictiveMaintenancePage: React.FC = () => {
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
   const [upcomingMaintenance, setUpcomingMaintenance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // 고도화 기능 상태
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedEquipmentForCompare, setSelectedEquipmentForCompare] = useState<number[]>([]);
+  const [showOEE, setShowOEE] = useState(false);
+  const [maintenanceHistory, setMaintenanceHistory] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'compare' | 'oee' | 'timeline'>('dashboard');
 
   useEffect(() => {
     loadDashboard();
@@ -114,6 +130,64 @@ export const PredictiveMaintenancePage: React.FC = () => {
     }
   };
 
+  // 설비 상세 모달 열기
+  const openDetailModal = (eq: Equipment) => {
+    setSelectedEquipment(eq);
+    setDetailModalOpen(true);
+  };
+
+  // 비교 모드 토글
+  const toggleCompareMode = (eqId: number) => {
+    if (selectedEquipmentForCompare.includes(eqId)) {
+      setSelectedEquipmentForCompare(selectedEquipmentForCompare.filter(id => id !== eqId));
+    } else {
+      if (selectedEquipmentForCompare.length < 4) {
+        setSelectedEquipmentForCompare([...selectedEquipmentForCompare, eqId]);
+      }
+    }
+  };
+
+  // OEE 데이터 생성 (시뮬레이션)
+  const generateOEEData = (eq: Equipment) => {
+    const availability = 85 + Math.random() * 10;
+    const performance = 90 + Math.random() * 8;
+    const quality = 95 + Math.random() * 4;
+    const oee = (availability * performance * quality) / 10000;
+
+    return {
+      equipment: eq.code,
+      availability: availability.toFixed(1),
+      performance: performance.toFixed(1),
+      quality: quality.toFixed(1),
+      oee: oee.toFixed(1),
+    };
+  };
+
+  // 유지보수 이력 생성 (시뮬레이션)
+  const generateMaintenanceHistory = () => {
+    const history = [];
+    const now = new Date();
+    for (let i = 0; i < 10; i++) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i * 7);
+
+      const types = ['예방', '예측', '고장', '개선'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const statuses = ['완료', '진행중', '예정'];
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+      history.push({
+        date: date.toISOString().split('T')[0],
+        type,
+        status,
+        description: `${type} 보전 - 정기 점검 및 부품 교체`,
+        technician: ['홍길동', '김철수', '박영수', '이민지'][Math.floor(Math.random() * 4)],
+        duration: Math.floor(Math.random() * 120) + 30,
+      });
+    }
+    return history;
+  };
+
   // 센서 데이터를 차트 포맷으로 변환
   const prepareChartData = (data: SensorData[]) => {
     const grouped = data.reduce((acc: any, curr) => {
@@ -179,17 +253,79 @@ export const PredictiveMaintenancePage: React.FC = () => {
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* 페이지 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">설비 예지 보전</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            AI 기반 설비 고장 예측 및 예방 보전 관리
-          </p>
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">설비 예지 보전</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              AI 기반 설비 고장 예측 및 예방 보전 관리
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={compareMode ? "default" : "outline"}
+              onClick={() => setCompareMode(!compareMode)}
+            >
+              <GitCompare className="w-4 h-4 mr-2" />
+              {compareMode ? '비교 완료' : '설비 비교'}
+            </Button>
+            <Button>
+              <Settings className="w-4 h-4 mr-2" />
+              설정
+            </Button>
+          </div>
         </div>
-        <Button>
-          <Settings className="w-4 h-4 mr-2" />
-          설정
-        </Button>
+
+        {/* 탭 네비게이션 */}
+        <div className="flex gap-2 border-b">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'dashboard'
+                ? 'border-b-2 border-purple-600 text-purple-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 inline mr-2" />
+            대시보드
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('compare');
+              setCompareMode(true);
+            }}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'compare'
+                ? 'border-b-2 border-purple-600 text-purple-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <GitCompare className="w-4 h-4 inline mr-2" />
+            설비 비교
+          </button>
+          <button
+            onClick={() => setActiveTab('oee')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'oee'
+                ? 'border-b-2 border-purple-600 text-purple-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Gauge className="w-4 h-4 inline mr-2" />
+            OEE 분석
+          </button>
+          <button
+            onClick={() => setActiveTab('timeline')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'timeline'
+                ? 'border-b-2 border-purple-600 text-purple-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <History className="w-4 h-4 inline mr-2" />
+            유지보수 이력
+          </button>
+        </div>
       </div>
 
       {/* 대시보드 카드 */}
@@ -341,10 +477,36 @@ export const PredictiveMaintenancePage: React.FC = () => {
                   {/* 상태 아이콘 */}
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>가동률: {eq.availability_current.toFixed(1)}%</span>
-                    {eq.maintenance_overdue && (
-                      <span className="text-red-600 font-semibold">점검 지연</span>
-                    )}
+                    <span>{eq.location}</span>
                   </div>
+
+                  {/* 액션 버튼 */}
+                  <div className="flex gap-2 mt-3 pt-3 border-t">
+                    {compareMode && (
+                      <button
+                        onClick={() => toggleCompareMode(eq.id)}
+                        className={`flex-1 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                          selectedEquipmentForCompare.includes(eq.id)
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {selectedEquipmentForCompare.includes(eq.id) ? '선택됨' : '비교 추가'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openDetailModal(eq)}
+                      className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                    >
+                      <Info className="w-3 h-3 inline mr-1" />
+                      상세
+                    </button>
+                  </div>
+                  {eq.maintenance_overdue && (
+                    <div className="mt-2 text-center">
+                      <span className="text-red-600 font-semibold">점검 지연</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -820,6 +982,404 @@ export const PredictiveMaintenancePage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* 설비 비교 탭 */}
+      {activeTab === 'compare' && selectedEquipmentForCompare.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GitCompare className="w-5 h-5 text-purple-600" />
+              설비 비교 분석 ({selectedEquipmentForCompare.length}개 선택)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* 비교 테이블 */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-semibold">항목</th>
+                      {selectedEquipmentForCompare.map(id => {
+                        const eq = equipment.find(e => e.id === id);
+                        return eq && <th key={id} className="text-center p-3 font-semibold">{eq.code}</th>;
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="p-3 font-medium">건전도 점수</td>
+                      {selectedEquipmentForCompare.map(id => {
+                        const eq = equipment.find(e => e.id === id);
+                        return eq && (
+                          <td key={id} className={`text-center p-3 font-semibold ${getHealthScoreColor(eq.health_score)}`}>
+                            {eq.health_score.toFixed(1)}점
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-3 font-medium">고장 확률</td>
+                      {selectedEquipmentForCompare.map(id => {
+                        const eq = equipment.find(e => e.id === id);
+                        return eq && (
+                          <td key={id} className="text-center p-3 font-semibold text-orange-600">
+                            {eq.failure_probability.toFixed(1)}%
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-3 font-medium">가동률</td>
+                      {selectedEquipmentForCompare.map(id => {
+                        const eq = equipment.find(e => e.id === id);
+                        return eq && (
+                          <td key={id} className="text-center p-3 font-semibold text-blue-600">
+                            {eq.availability_current.toFixed(1)}%
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-3 font-medium">성능률</td>
+                      {selectedEquipmentForCompare.map(id => {
+                        const eq = equipment.find(e => e.id === id);
+                        return eq && (
+                          <td key={id} className="text-center p-3 font-semibold text-green-600">
+                            {eq.performance_current.toFixed(1)}%
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-3 font-medium">위치</td>
+                      {selectedEquipmentForCompare.map(id => {
+                        const eq = equipment.find(e => e.id === id);
+                        return eq && <td key={id} className="text-center p-3">{eq.location}</td>;
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 비교 차트 */}
+              <div>
+                <h4 className="font-semibold mb-4">건전도 트렌드 비교</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={selectedEquipmentForCompare.map(id => {
+                    const eq = equipment.find(e => e.id === id);
+                    return eq ? generateHealthTrendData(eq.health_score)[0] : {};
+                  })}>
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    {selectedEquipmentForCompare.map((id, index) => {
+                      const eq = equipment.find(e => e.id === id);
+                      if (!eq) return null;
+                      const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'];
+                      const data = generateHealthTrendData(eq.health_score);
+                      return (
+                        <Line
+                          key={id}
+                          type="monotone"
+                          dataKey="healthScore"
+                          data={data}
+                          stroke={colors[index % colors.length]}
+                          name={eq.code}
+                        />
+                      );
+                    })}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* OEE 분석 탭 */}
+      {activeTab === 'oee' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gauge className="w-5 h-5 text-purple-600" />
+              종합설비효율 (OEE) 분석
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* OEE 요약 카드 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-sm text-blue-600 font-medium mb-2">가동율 (Availability)</div>
+                  <div className="text-3xl font-bold text-blue-700">
+                    {(equipment.reduce((sum, eq) => sum + parseFloat(generateOEEData(eq).availability), 0) / equipment.length).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-blue-500 mt-1">목표: 90%</div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-sm text-green-600 font-medium mb-2">성능율 (Performance)</div>
+                  <div className="text-3xl font-bold text-green-700">
+                    {(equipment.reduce((sum, eq) => sum + parseFloat(generateOEEData(eq).performance), 0) / equipment.length).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-green-500 mt-1">목표: 95%</div>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="text-sm text-purple-600 font-medium mb-2">양품률 (Quality)</div>
+                  <div className="text-3xl font-bold text-purple-700">
+                    {(equipment.reduce((sum, eq) => sum + parseFloat(generateOEEData(eq).quality), 0) / equipment.length).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-purple-500 mt-1">목표: 99%</div>
+                </div>
+              </div>
+
+              {/* OEE 상세 테이블 */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-3 font-semibold">설비</th>
+                      <th className="text-center p-3 font-semibold">가동율</th>
+                      <th className="text-center p-3 font-semibold">성능율</th>
+                      <th className="text-center p-3 font-semibold">양품률</th>
+                      <th className="text-center p-3 font-semibold">OEE</th>
+                      <th className="text-center p-3 font-semibold">등급</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equipment.map(eq => {
+                      const oeeData = generateOEEData(eq);
+                      const oeeValue = parseFloat(oeeData.oee);
+                      const grade = oeeValue >= 85 ? 'A' : oeeValue >= 70 ? 'B' : oeeValue >= 50 ? 'C' : 'D';
+                      const gradeColor = grade === 'A' ? 'bg-green-100 text-green-800' :
+                                        grade === 'B' ? 'bg-blue-100 text-blue-800' :
+                                        grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800';
+                      return (
+                        <tr key={eq.id} className="border-b hover:bg-gray-50">
+                          <td className="p-3 font-medium">{eq.code} - {eq.name}</td>
+                          <td className="text-center p-3">{oeeData.availability}%</td>
+                          <td className="text-center p-3">{oeeData.performance}%</td>
+                          <td className="text-center p-3">{oeeData.quality}%</td>
+                          <td className="text-center p-3 font-bold">{oeeData.oee}%</td>
+                          <td className="text-center p-3">
+                            <Badge className={gradeColor}>{grade}급</Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 유지보수 이력 탭 */}
+      {activeTab === 'timeline' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-purple-600" />
+              유지보수 이력 타임라인
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {selectedEquipment ? (
+                <>
+                  <div className="mb-4 p-3 bg-purple-50 rounded-lg">
+                    <span className="font-semibold text-purple-900">{selectedEquipment.code} - {selectedEquipment.name}</span>의 유지보수 이력
+                  </div>
+                  <div className="relative">
+                    {/* 타임라인 라인 */}
+                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+                    {/* 타임라인 아이템 */}
+                    {generateMaintenanceHistory().map((item, index) => (
+                      <div key={index} className="relative pl-10 pb-6">
+                        {/* 타임라인 도트 */}
+                        <div className={`absolute left-2 w-5 h-5 rounded-full border-2 ${
+                          item.type === '예방' ? 'bg-green-500 border-green-200' :
+                          item.type === '예측' ? 'bg-blue-500 border-blue-200' :
+                          item.type === '고장' ? 'bg-red-500 border-red-200' :
+                          'bg-purple-500 border-purple-200'
+                        }`}></div>
+
+                        {/* 이력 카드 */}
+                        <div className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-900">{item.date}</span>
+                                <Badge variant="outline" className={
+                                  item.type === '예방' ? 'bg-green-100 text-green-800' :
+                                  item.type === '예측' ? 'bg-blue-100 text-blue-800' :
+                                  item.type === '고장' ? 'bg-red-100 text-red-800' :
+                                  'bg-purple-100 text-purple-800'
+                                }>{item.type}</Badge>
+                                <Badge variant="outline" className={
+                                  item.status === '완료' ? 'bg-gray-100 text-gray-800' :
+                                  item.status === '진행중' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }>{item.status}</Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span>담당자: {item.technician}</span>
+                            <span>소요시간: {item.duration}분</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  설비를 선택해주세요
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 설비 상세 모달 */}
+      {selectedEquipment && (
+        <Modal
+          isOpen={detailModalOpen}
+          onClose={() => setDetailModalOpen(false)}
+          title="설비 상세 정보"
+          size="lg"
+        >
+          <div className="space-y-6">
+            {/* 기본 정보 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">설비 코드</label>
+                <p className="text-lg font-semibold text-gray-900">{selectedEquipment.code}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">설비명</label>
+                <p className="text-lg font-semibold text-gray-900">{selectedEquipment.name}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">위치</label>
+                <p className="text-gray-900">{selectedEquipment.location}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">상태</label>
+                <Badge className={selectedEquipment.status === 'OPERATIONAL' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                  {selectedEquipment.status_display}
+                </Badge>
+              </div>
+            </div>
+
+            {/* 건전도 및 고장 확률 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-sm text-green-600 font-medium mb-2">건전도 점수</div>
+                <div className={`text-4xl font-bold ${getHealthScoreColor(selectedEquipment.health_score)}`}>
+                  {selectedEquipment.health_score.toFixed(1)}
+                </div>
+                <div className="text-xs text-green-500 mt-1">/ 100점</div>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <div className="text-sm text-orange-600 font-medium mb-2">고장 확률</div>
+                <div className="text-4xl font-bold text-orange-600">
+                  {selectedEquipment.failure_probability.toFixed(1)}%
+                </div>
+                <div className="text-xs text-orange-500 mt-1">향후 30일</div>
+              </div>
+            </div>
+
+            {/* 가동율 및 성능률 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">가동률</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full"
+                      style={{ width: `${selectedEquipment.availability_current}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-semibold text-blue-600 w-16 text-right">
+                    {selectedEquipment.availability_current.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">성능률</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full"
+                      style={{ width: `${selectedEquipment.performance_current}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-semibold text-green-600 w-16 text-right">
+                    {selectedEquipment.performance_current.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 건전도 트렌드 */}
+            <div>
+              <h4 className="font-semibold mb-4">건전도 트렌드 (최근 30일)</h4>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={generateHealthTrendData(selectedEquipment.health_score)}>
+                  <defs>
+                    <linearGradient id="colorHealth" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="healthScore" stroke="#10b981" fillOpacity={1} fill="url(#colorHealth)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 예측 고장 확률 */}
+            <div>
+              <h4 className="font-semibold mb-4">고장 확률 예측 (향후 30일)</h4>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={generateFailureTrendData(selectedEquipment.failure_probability)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="failureProb" stroke="#ef4444" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 액션 버튼 */}
+            <div className="flex gap-2 pt-4 border-t">
+              <Button className="flex-1">
+                <Wrench className="w-4 h-4 mr-2" />
+                보전 일정 추가
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => {
+                setActiveTab('timeline');
+                setDetailModalOpen(false);
+              }}>
+                <History className="w-4 h-4 mr-2" />
+                이력 보기
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
