@@ -10,6 +10,7 @@ import {
 import {
   Plus,
   Edit,
+  Trash2,
   Search,
   Filter,
   Wrench,
@@ -20,6 +21,8 @@ import {
   Calendar,
   DollarSign,
   FileText,
+  Save,
+  X,
 } from 'lucide-react';
 
 interface RepairRecord {
@@ -41,6 +44,29 @@ interface RepairRecord {
   labor_cost: number;
   parts_cost: number;
   total_cost: number;
+  root_cause: string;
+  corrective_action: string;
+  preventive_action: string;
+  notes: string;
+}
+
+interface RepairFormData {
+  equipment_id: string;
+  equipment_name: string;
+  equipment_code: string;
+  failure_date: string;
+  failure_description: string;
+  failure_type: 'MECHANICAL' | 'ELECTRICAL' | 'HYDRAULIC' | 'PNEUMATIC' | 'SOFTWARE' | 'OTHER';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED';
+  reported_by: string;
+  assigned_to: string;
+  start_date: string;
+  completion_date: string;
+  duration_minutes: string;
+  parts_used: string;
+  labor_cost: string;
+  parts_cost: string;
   root_cause: string;
   corrective_action: string;
   preventive_action: string;
@@ -121,6 +147,13 @@ const MOCK_REPAIRS: RepairRecord[] = [
   },
 ];
 
+const MOCK_EQUIPMENTS = [
+  { id: 1, name: 'CNC 머신 A', code: 'EQ-001' },
+  { id: 2, name: '프레스 기계 B', code: 'EQ-002' },
+  { id: 3, name: '로봇 팔 R-1', code: 'EQ-003' },
+  { id: 4, name: '컨베이어 벨트 C-1', code: 'EQ-004' },
+];
+
 export const EquipmentRepairHistoryPage: React.FC = () => {
   const [repairs, setRepairs] = useState<RepairRecord[]>(MOCK_REPAIRS);
   const [loading, setLoading] = useState(false);
@@ -129,7 +162,31 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedSeverity, setSelectedSeverity] = useState('ALL');
   const [selectedRepair, setSelectedRepair] = useState<RepairRecord | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [formData, setFormData] = useState<RepairFormData>({
+    equipment_id: '',
+    equipment_name: '',
+    equipment_code: '',
+    failure_date: new Date().toISOString().split('T')[0],
+    failure_description: '',
+    failure_type: 'MECHANICAL',
+    severity: 'MEDIUM',
+    status: 'PENDING',
+    reported_by: '',
+    assigned_to: '',
+    start_date: new Date().toISOString().slice(0, 16),
+    completion_date: '',
+    duration_minutes: '0',
+    parts_used: '',
+    labor_cost: '0',
+    parts_cost: '0',
+    root_cause: '',
+    corrective_action: '',
+    preventive_action: '',
+    notes: '',
+  });
 
   const filteredRepairs = repairs.filter(repair => {
     const matchesSearch =
@@ -143,8 +200,6 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
 
     return matchesSearch && matchesEquipment && matchesStatus && matchesSeverity;
   });
-
-  const equipments = Array.from(new Set(repairs.map(r => ({ id: r.equipment_id, name: r.equipment_name, code: r.equipment_code }))));
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -188,6 +243,108 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
   const totalCost = repairs.reduce((sum, r) => sum + r.total_cost, 0);
   const avgRepairTime = repairs.reduce((sum, r) => sum + r.duration_minutes, 0) / repairs.length;
 
+  // 신규 등록 모달 열기
+  const handleOpenAddModal = () => {
+    setIsEditMode(false);
+    setFormData({
+      equipment_id: '',
+      equipment_name: '',
+      equipment_code: '',
+      failure_date: new Date().toISOString().split('T')[0],
+      failure_description: '',
+      failure_type: 'MECHANICAL',
+      severity: 'MEDIUM',
+      status: 'PENDING',
+      reported_by: '',
+      assigned_to: '',
+      start_date: new Date().toISOString().slice(0, 16),
+      completion_date: '',
+      duration_minutes: '0',
+      parts_used: '',
+      labor_cost: '0',
+      parts_cost: '0',
+      root_cause: '',
+      corrective_action: '',
+      preventive_action: '',
+      notes: '',
+    });
+    setIsFormModalOpen(true);
+  };
+
+  // 수정 모달 열기
+  const handleOpenEditModal = (repair: RepairRecord) => {
+    setIsEditMode(true);
+    setSelectedRepair(repair);
+    setFormData({
+      equipment_id: repair.equipment_id.toString(),
+      equipment_name: repair.equipment_name,
+      equipment_code: repair.equipment_code,
+      failure_date: repair.failure_date,
+      failure_description: repair.failure_description,
+      failure_type: repair.failure_type,
+      severity: repair.severity,
+      status: repair.status,
+      reported_by: repair.reported_by,
+      assigned_to: repair.assigned_to,
+      start_date: repair.start_date,
+      completion_date: repair.completion_date || '',
+      duration_minutes: repair.duration_minutes.toString(),
+      parts_used: repair.parts_used.join(', '),
+      labor_cost: repair.labor_cost.toString(),
+      parts_cost: repair.parts_cost.toString(),
+      root_cause: repair.root_cause,
+      corrective_action: repair.corrective_action,
+      preventive_action: repair.preventive_action,
+      notes: repair.notes,
+    });
+    setIsFormModalOpen(true);
+  };
+
+  // 저장 처리
+  const handleSave = () => {
+    const equipment = MOCK_EQUIPMENTS.find(eq => eq.id.toString() === formData.equipment_id);
+
+    const repairData: RepairRecord = {
+      id: isEditMode && selectedRepair ? selectedRepair.id : Date.now(),
+      equipment_id: parseInt(formData.equipment_id) || 0,
+      equipment_name: equipment?.name || formData.equipment_name,
+      equipment_code: equipment?.code || formData.equipment_code,
+      failure_date: formData.failure_date,
+      failure_description: formData.failure_description,
+      failure_type: formData.failure_type,
+      severity: formData.severity,
+      status: formData.status,
+      reported_by: formData.reported_by,
+      assigned_to: formData.assigned_to,
+      start_date: formData.start_date,
+      completion_date: formData.completion_date || undefined,
+      duration_minutes: parseInt(formData.duration_minutes) || 0,
+      parts_used: formData.parts_used.split(',').map(p => p.trim()).filter(p => p.length > 0),
+      labor_cost: parseInt(formData.labor_cost) || 0,
+      parts_cost: parseInt(formData.parts_cost) || 0,
+      total_cost: (parseInt(formData.labor_cost) || 0) + (parseInt(formData.parts_cost) || 0),
+      root_cause: formData.root_cause,
+      corrective_action: formData.corrective_action,
+      preventive_action: formData.preventive_action,
+      notes: formData.notes,
+    };
+
+    if (isEditMode && selectedRepair) {
+      setRepairs(repairs.map(r => (r.id === selectedRepair.id ? repairData : r)));
+    } else {
+      setRepairs([...repairs, repairData]);
+    }
+
+    setIsFormModalOpen(false);
+  };
+
+  // 삭제 처리
+  const handleDelete = (id: number) => {
+    if (window.confirm('정말로 이 수리 기록을 삭제하시겠습니까?')) {
+      setRepairs(repairs.filter(r => r.id !== id));
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* 페이지 헤더 */}
@@ -203,7 +360,10 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
             <FileText className="w-4 h-4 mr-2" />
             수리 보고서
           </Button>
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={handleOpenAddModal}
+          >
             <Plus className="w-4 h-4 mr-2" />
             수리 기록 등록
           </Button>
@@ -227,7 +387,7 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
             </div>
             <Select value={selectedEquipment} onValueChange={setSelectedEquipment} className="w-48">
               <SelectItem value="ALL">전체 설비</SelectItem>
-              {equipments.map(eq => (
+              {MOCK_EQUIPMENTS.map(eq => (
                 <SelectItem key={eq.id} value={eq.id.toString()}>{eq.name}</SelectItem>
               ))}
             </Select>
@@ -347,7 +507,7 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
                       className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                       onClick={() => {
                         setSelectedRepair(repair);
-                        setIsModalOpen(true);
+                        setIsDetailModalOpen(true);
                       }}
                     >
                       <td className="py-3 px-4">
@@ -378,18 +538,30 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
                         ₩{repair.total_cost.toLocaleString()}
                       </td>
                       <td className="py-3 px-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedRepair(repair);
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditModal(repair);
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(repair.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -408,15 +580,15 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
       </Card>
 
       {/* 상세 모달 */}
-      {isModalOpen && selectedRepair && (
+      {isDetailModalOpen && selectedRepair && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsModalOpen(false)} />
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsDetailModalOpen(false)} />
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
                 <h3 className="text-xl font-semibold">수리 기록 상세</h3>
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsDetailModalOpen(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   ✕
@@ -526,6 +698,290 @@ export const EquipmentRepairHistoryPage: React.FC = () => {
                     <p className="text-sm text-gray-600">{selectedRepair.notes}</p>
                   </div>
                 )}
+
+                {/* 관리 버튼 */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleDelete(selectedRepair.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    삭제
+                  </Button>
+                  <Button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleOpenEditModal(selectedRepair);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    수정
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 등록/수정 모달 */}
+      {isFormModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsFormModalOpen(false)} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-xl font-semibold">
+                  {isEditMode ? '수리 기록 수정' : '신규 수리 기록 등록'}
+                </h3>
+                <button
+                  onClick={() => setIsFormModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      설비 <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={formData.equipment_id}
+                      onValueChange={(value) => {
+                        const eq = MOCK_EQUIPMENTS.find(e => e.id.toString() === value);
+                        setFormData({
+                          ...formData,
+                          equipment_id: value,
+                          equipment_name: eq?.name || '',
+                          equipment_code: eq?.code || ''
+                        });
+                      }}
+                      className="w-full"
+                    >
+                      <SelectItem value="">설비 선택</SelectItem>
+                      {MOCK_EQUIPMENTS.map(eq => (
+                        <SelectItem key={eq.id} value={eq.id.toString()}>{eq.name}</SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      고장 일자 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={formData.failure_date}
+                      onChange={(e) => setFormData({ ...formData, failure_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      고장 내용 <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[80px]"
+                      value={formData.failure_description}
+                      onChange={(e) => setFormData({ ...formData, failure_description: e.target.value })}
+                      placeholder="고장 현상을 상세히 기술"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      고장 유형 <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={formData.failure_type}
+                      onValueChange={(value) => setFormData({ ...formData, failure_type: value as any })}
+                      className="w-full"
+                    >
+                      {failureTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      중요도 <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={formData.severity}
+                      onValueChange={(value) => setFormData({ ...formData, severity: value as any })}
+                      className="w-full"
+                    >
+                      <SelectItem value="LOW">낮음</SelectItem>
+                      <SelectItem value="MEDIUM">중간</SelectItem>
+                      <SelectItem value="HIGH">높음</SelectItem>
+                      <SelectItem value="CRITICAL">긴급</SelectItem>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      상태 <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value as any })}
+                      className="w-full"
+                    >
+                      <SelectItem value="PENDING">대기 중</SelectItem>
+                      <SelectItem value="IN_PROGRESS">진행 중</SelectItem>
+                      <SelectItem value="COMPLETED">완료</SelectItem>
+                      <SelectItem value="CLOSED">종료</SelectItem>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      보고자 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.reported_by}
+                      onChange={(e) => setFormData({ ...formData, reported_by: e.target.value })}
+                      placeholder="예: 오퍼레이터1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      담당자 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.assigned_to}
+                      onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                      placeholder="예: 김기술"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      시작 일시 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      완료 일시
+                    </label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.completion_date}
+                      onChange={(e) => setFormData({ ...formData, completion_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      소요 시간 (분) <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.duration_minutes}
+                      onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
+                      placeholder="예: 120"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      인건비 (원) <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.labor_cost}
+                      onChange={(e) => setFormData({ ...formData, labor_cost: e.target.value })}
+                      placeholder="예: 100000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      부품비 (원) <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.parts_cost}
+                      onChange={(e) => setFormData({ ...formData, parts_cost: e.target.value })}
+                      placeholder="예: 500000"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      사용 부품 (쉼표로 구분)
+                    </label>
+                    <Input
+                      value={formData.parts_used}
+                      onChange={(e) => setFormData({ ...formData, parts_used: e.target.value })}
+                      placeholder="예: 모터 어셈블리, 온도 센서"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      원인 규명
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[80px]"
+                      value={formData.root_cause}
+                      onChange={(e) => setFormData({ ...formData, root_cause: e.target.value })}
+                      placeholder="고장 원인 분석"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      수리 조치
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[80px]"
+                      value={formData.corrective_action}
+                      onChange={(e) => setFormData({ ...formData, corrective_action: e.target.value })}
+                      placeholder="수리 조치 내용"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      예방 조치
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[80px]"
+                      value={formData.preventive_action}
+                      onChange={(e) => setFormData({ ...formData, preventive_action: e.target.value })}
+                      placeholder="재발 방지를 위한 예방 조치"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      비고
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[80px]"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="추가 정보 입력"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setIsFormModalOpen(false)}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    취소
+                  </Button>
+                  <Button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    onClick={handleSave}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {isEditMode ? '저장' : '등록'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

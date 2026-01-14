@@ -18,6 +18,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
+  Save,
+  X,
 } from 'lucide-react';
 
 interface Equipment {
@@ -34,6 +36,21 @@ interface Equipment {
   department: string;
   cost: number;
   specifications?: Record<string, string>;
+}
+
+interface EquipmentFormData {
+  code: string;
+  name: string;
+  type: string;
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  location: string;
+  installation_date: string;
+  status: 'OPERATIONAL' | 'MAINTENANCE' | 'DOWN' | 'RETIRED';
+  department: string;
+  cost: string;
+  specifications: string;
 }
 
 const MOCK_EQUIPMENT: Equipment[] = [
@@ -122,7 +139,23 @@ export const EquipmentMasterPage: React.FC = () => {
   const [selectedType, setSelectedType] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [formData, setFormData] = useState<EquipmentFormData>({
+    code: '',
+    name: '',
+    type: '',
+    manufacturer: '',
+    model: '',
+    serial_number: '',
+    location: '',
+    installation_date: '',
+    status: 'OPERATIONAL',
+    department: '',
+    cost: '',
+    specifications: '',
+  });
 
   const filteredEquipment = equipment.filter(eq => {
     const matchesSearch =
@@ -173,6 +206,98 @@ export const EquipmentMasterPage: React.FC = () => {
 
   const equipmentTypes = Array.from(new Set(equipment.map(eq => eq.type)));
 
+  // 신규 등록 모달 열기
+  const handleOpenAddModal = () => {
+    setIsEditMode(false);
+    setFormData({
+      code: '',
+      name: '',
+      type: '',
+      manufacturer: '',
+      model: '',
+      serial_number: '',
+      location: '',
+      installation_date: '',
+      status: 'OPERATIONAL',
+      department: '',
+      cost: '',
+      specifications: '',
+    });
+    setIsFormModalOpen(true);
+  };
+
+  // 수정 모달 열기
+  const handleOpenEditModal = (eq: Equipment) => {
+    setIsEditMode(true);
+    setSelectedEquipment(eq);
+    setFormData({
+      code: eq.code,
+      name: eq.name,
+      type: eq.type,
+      manufacturer: eq.manufacturer,
+      model: eq.model,
+      serial_number: eq.serial_number,
+      location: eq.location,
+      installation_date: eq.installation_date,
+      status: eq.status,
+      department: eq.department,
+      cost: eq.cost.toString(),
+      specifications: eq.specifications
+        ? Object.entries(eq.specifications)
+            .map(([k, v]) => `${k}:${v}`)
+            .join('\n')
+        : '',
+    });
+    setIsFormModalOpen(true);
+  };
+
+  // 저장 처리
+  const handleSave = () => {
+    // 사양 파싱
+    const specs: Record<string, string> = {};
+    if (formData.specifications.trim()) {
+      formData.specifications.split('\n').forEach(line => {
+        const [key, ...valueParts] = line.split(':');
+        if (key && valueParts.length > 0) {
+          specs[key.trim()] = valueParts.join(':').trim();
+        }
+      });
+    }
+
+    const equipmentData: Equipment = {
+      id: isEditMode && selectedEquipment ? selectedEquipment.id : Date.now(),
+      code: formData.code,
+      name: formData.name,
+      type: formData.type,
+      manufacturer: formData.manufacturer,
+      model: formData.model,
+      serial_number: formData.serial_number,
+      location: formData.location,
+      installation_date: formData.installation_date,
+      status: formData.status,
+      department: formData.department,
+      cost: parseInt(formData.cost) || 0,
+      specifications: Object.keys(specs).length > 0 ? specs : undefined,
+    };
+
+    if (isEditMode && selectedEquipment) {
+      // 수정
+      setEquipment(equipment.map(eq => (eq.id === selectedEquipment.id ? equipmentData : eq)));
+    } else {
+      // 신규 등록
+      setEquipment([...equipment, equipmentData]);
+    }
+
+    setIsFormModalOpen(false);
+  };
+
+  // 삭제 처리
+  const handleDelete = (id: number) => {
+    if (window.confirm('정말로 이 설비를 삭제하시겠습니까?')) {
+      setEquipment(equipment.filter(eq => eq.id !== id));
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* 페이지 헤더 */}
@@ -188,7 +313,10 @@ export const EquipmentMasterPage: React.FC = () => {
             <Filter className="w-4 h-4 mr-2" />
             상세 필터
           </Button>
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={handleOpenAddModal}
+          >
             <Plus className="w-4 h-4 mr-2" />
             신규 설비 등록
           </Button>
@@ -305,7 +433,7 @@ export const EquipmentMasterPage: React.FC = () => {
                       className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                       onClick={() => {
                         setSelectedEquipment(eq);
-                        setIsModalOpen(true);
+                        setIsDetailModalOpen(true);
                       }}
                     >
                       <td className="py-3 px-4 text-sm font-mono text-gray-700">
@@ -348,8 +476,7 @@ export const EquipmentMasterPage: React.FC = () => {
                             className="h-8 w-8 p-0"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedEquipment(eq);
-                              setIsModalOpen(true);
+                              handleOpenEditModal(eq);
                             }}
                           >
                             <Edit className="w-4 h-4" />
@@ -360,7 +487,7 @@ export const EquipmentMasterPage: React.FC = () => {
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // 삭제 로직
+                              handleDelete(eq.id);
                             }}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -384,15 +511,15 @@ export const EquipmentMasterPage: React.FC = () => {
       </Card>
 
       {/* 상세 모달 */}
-      {isModalOpen && selectedEquipment && (
+      {isDetailModalOpen && selectedEquipment && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsModalOpen(false)} />
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsDetailModalOpen(false)} />
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full">
               <div className="flex items-center justify-between p-6 border-b">
                 <h3 className="text-xl font-semibold">설비 상세 정보</h3>
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsDetailModalOpen(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   ✕
@@ -455,6 +582,201 @@ export const EquipmentMasterPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                <div className="flex gap-2 mt-6">
+                  <Button
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleOpenEditModal(selectedEquipment);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    수정
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleDelete(selectedEquipment.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    삭제
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 등록/수정 모달 */}
+      {isFormModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsFormModalOpen(false)} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-xl font-semibold">
+                  {isEditMode ? '설비 정보 수정' : '신규 설비 등록'}
+                </h3>
+                <button
+                  onClick={() => setIsFormModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      설비 코드 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.code}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                      placeholder="예: EQ-001"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      설비명 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="예: CNC 머신 A"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      유형 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      placeholder="예: CNC"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      시리얼 번호 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.serial_number}
+                      onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+                      placeholder="예: SN-2024-001"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      제조사 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.manufacturer}
+                      onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+                      placeholder="예: FANUC"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      모델 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.model}
+                      onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                      placeholder="예: DMG Mori NLX 2500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      위치 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="예: 생산라인 1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      관리 부서 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      placeholder="예: 생산팀"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      설치일 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={formData.installation_date}
+                      onChange={(e) => setFormData({ ...formData, installation_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      취득 비용 (원) <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.cost}
+                      onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                      placeholder="예: 250000000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      상태 <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value as any })}
+                      className="w-full"
+                    >
+                      <SelectItem value="OPERATIONAL">가동 중</SelectItem>
+                      <SelectItem value="MAINTENANCE">점검 중</SelectItem>
+                      <SelectItem value="DOWN">고장</SelectItem>
+                      <SelectItem value="RETIRED">폐기</SelectItem>
+                    </Select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      기술 사양 (키:값 형식, 한 줄당 하나씩)
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[100px]"
+                      value={formData.specifications}
+                      onChange={(e) => setFormData({ ...formData, specifications: e.target.value })}
+                      placeholder="최대 회전수:12000 RPM&#10;출력:15kW&#10;정밀도:±0.001mm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setIsFormModalOpen(false)}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    취소
+                  </Button>
+                  <Button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    onClick={handleSave}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {isEditMode ? '저장' : '등록'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

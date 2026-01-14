@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   Box,
   Wrench,
+  Save,
+  X,
 } from 'lucide-react';
 
 interface Part {
@@ -34,6 +36,24 @@ interface Part {
   location: string;
   supplier: string;
   lead_time_days: number;
+  last_restocked_date: string;
+}
+
+interface PartFormData {
+  code: string;
+  name: string;
+  equipment_id: string;
+  equipment_name: string;
+  category: string;
+  manufacturer: string;
+  part_number: string;
+  unit_price: string;
+  stock_quantity: string;
+  min_stock: string;
+  max_stock: string;
+  location: string;
+  supplier: string;
+  lead_time_days: string;
   last_restocked_date: string;
 }
 
@@ -112,6 +132,13 @@ const MOCK_PARTS: Part[] = [
   },
 ];
 
+const MOCK_EQUIPMENTS = [
+  { id: 1, name: 'CNC 머신 A' },
+  { id: 2, name: '프레스 기계 B' },
+  { id: 3, name: '로봇 팔 R-1' },
+  { id: 4, name: '컨베이어 벨트 C-1' },
+];
+
 export const EquipmentPartsPage: React.FC = () => {
   const [parts, setParts] = useState<Part[]>(MOCK_PARTS);
   const [loading, setLoading] = useState(false);
@@ -120,7 +147,26 @@ export const EquipmentPartsPage: React.FC = () => {
   const [selectedEquipment, setSelectedEquipment] = useState('ALL');
   const [stockStatus, setStockStatus] = useState('ALL');
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [formData, setFormData] = useState<PartFormData>({
+    code: '',
+    name: '',
+    equipment_id: '',
+    equipment_name: '',
+    category: '',
+    manufacturer: '',
+    part_number: '',
+    unit_price: '',
+    stock_quantity: '',
+    min_stock: '',
+    max_stock: '',
+    location: '',
+    supplier: '',
+    lead_time_days: '',
+    last_restocked_date: '',
+  });
 
   const filteredParts = parts.filter(part => {
     const matchesSearch =
@@ -144,7 +190,6 @@ export const EquipmentPartsPage: React.FC = () => {
   });
 
   const categories = Array.from(new Set(parts.map(p => p.category)));
-  const equipments = Array.from(new Set(parts.map(p => ({ id: p.equipment_id, name: p.equipment_name }))));
 
   const getStockStatus = (part: Part) => {
     if (part.stock_quantity <= part.min_stock) {
@@ -170,6 +215,105 @@ export const EquipmentPartsPage: React.FC = () => {
   const lowStockCount = parts.filter(p => p.stock_quantity <= p.min_stock).length;
   const totalValue = parts.reduce((sum, p) => sum + (p.unit_price * p.stock_quantity), 0);
 
+  // 신규 등록 모달 열기
+  const handleOpenAddModal = () => {
+    setIsEditMode(false);
+    setFormData({
+      code: '',
+      name: '',
+      equipment_id: '',
+      equipment_name: '',
+      category: '',
+      manufacturer: '',
+      part_number: '',
+      unit_price: '',
+      stock_quantity: '0',
+      min_stock: '0',
+      max_stock: '100',
+      location: '',
+      supplier: '',
+      lead_time_days: '7',
+      last_restocked_date: new Date().toISOString().split('T')[0],
+    });
+    setIsFormModalOpen(true);
+  };
+
+  // 수정 모달 열기
+  const handleOpenEditModal = (part: Part) => {
+    setIsEditMode(true);
+    setSelectedPart(part);
+    setFormData({
+      code: part.code,
+      name: part.name,
+      equipment_id: part.equipment_id.toString(),
+      equipment_name: part.equipment_name,
+      category: part.category,
+      manufacturer: part.manufacturer,
+      part_number: part.part_number,
+      unit_price: part.unit_price.toString(),
+      stock_quantity: part.stock_quantity.toString(),
+      min_stock: part.min_stock.toString(),
+      max_stock: part.max_stock.toString(),
+      location: part.location,
+      supplier: part.supplier,
+      lead_time_days: part.lead_time_days.toString(),
+      last_restocked_date: part.last_restocked_date,
+    });
+    setIsFormModalOpen(true);
+  };
+
+  // 저장 처리
+  const handleSave = () => {
+    const equipment = MOCK_EQUIPMENTS.find(eq => eq.id.toString() === formData.equipment_id);
+
+    const partData: Part = {
+      id: isEditMode && selectedPart ? selectedPart.id : Date.now(),
+      code: formData.code,
+      name: formData.name,
+      equipment_id: parseInt(formData.equipment_id) || 0,
+      equipment_name: equipment?.name || formData.equipment_name,
+      category: formData.category,
+      manufacturer: formData.manufacturer,
+      part_number: formData.part_number,
+      unit_price: parseInt(formData.unit_price) || 0,
+      stock_quantity: parseInt(formData.stock_quantity) || 0,
+      min_stock: parseInt(formData.min_stock) || 0,
+      max_stock: parseInt(formData.max_stock) || 0,
+      location: formData.location,
+      supplier: formData.supplier,
+      lead_time_days: parseInt(formData.lead_time_days) || 0,
+      last_restocked_date: formData.last_restocked_date,
+    };
+
+    if (isEditMode && selectedPart) {
+      setParts(parts.map(p => (p.id === selectedPart.id ? partData : p)));
+    } else {
+      setParts([...parts, partData]);
+    }
+
+    setIsFormModalOpen(false);
+  };
+
+  // 삭제 처리
+  const handleDelete = (id: number) => {
+    if (window.confirm('정말로 이 부품을 삭제하시겠습니까?')) {
+      setParts(parts.filter(p => p.id !== id));
+    }
+  };
+
+  // 발주 요청 (재고 증가)
+  const handleRestock = (part: Part) => {
+    const quantityToAdd = part.min_stock - part.stock_quantity + 10;
+    if (window.confirm(`${quantityToAdd}개를 발주하시겠습니까?`)) {
+      setParts(parts.map(p =>
+        p.id === part.id
+          ? { ...p, stock_quantity: p.stock_quantity + quantityToAdd }
+          : p
+      ));
+      setIsDetailModalOpen(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* 페이지 헤더 */}
@@ -185,7 +329,10 @@ export const EquipmentPartsPage: React.FC = () => {
             <Package className="w-4 h-4 mr-2" />
             재고 실사
           </Button>
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={handleOpenAddModal}
+          >
             <Plus className="w-4 h-4 mr-2" />
             신규 부품 등록
           </Button>
@@ -215,7 +362,7 @@ export const EquipmentPartsPage: React.FC = () => {
             </Select>
             <Select value={selectedEquipment} onValueChange={setSelectedEquipment} className="w-48">
               <SelectItem value="ALL">전체 설비</SelectItem>
-              {equipments.map(eq => (
+              {MOCK_EQUIPMENTS.map(eq => (
                 <SelectItem key={eq.id} value={eq.id.toString()}>{eq.name}</SelectItem>
               ))}
             </Select>
@@ -330,7 +477,7 @@ export const EquipmentPartsPage: React.FC = () => {
                       className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                       onClick={() => {
                         setSelectedPart(part);
-                        setIsModalOpen(true);
+                        setIsDetailModalOpen(true);
                       }}
                     >
                       <td className="py-3 px-4 text-sm font-mono text-gray-700">
@@ -370,8 +517,7 @@ export const EquipmentPartsPage: React.FC = () => {
                             className="h-8 w-8 p-0"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedPart(part);
-                              setIsModalOpen(true);
+                              handleOpenEditModal(part);
                             }}
                           >
                             <Edit className="w-4 h-4" />
@@ -380,7 +526,10 @@ export const EquipmentPartsPage: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(part.id);
+                            }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -403,15 +552,15 @@ export const EquipmentPartsPage: React.FC = () => {
       </Card>
 
       {/* 상세 모달 */}
-      {isModalOpen && selectedPart && (
+      {isDetailModalOpen && selectedPart && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsModalOpen(false)} />
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsDetailModalOpen(false)} />
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full">
               <div className="flex items-center justify-between p-6 border-b">
                 <h3 className="text-xl font-semibold">부품 상세 정보</h3>
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsDetailModalOpen(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   ✕
@@ -470,13 +619,224 @@ export const EquipmentPartsPage: React.FC = () => {
                 </div>
 
                 <div className="mt-6 flex gap-2">
-                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
+                  <Button
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleRestock(selectedPart)}
+                  >
                     <Wrench className="w-4 h-4 mr-2" />
                     발주 요청
                   </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Package className="w-4 h-4 mr-2" />
-                    입고 처리
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleOpenEditModal(selectedPart);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    수정
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 등록/수정 모달 */}
+      {isFormModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsFormModalOpen(false)} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-xl font-semibold">
+                  {isEditMode ? '부품 정보 수정' : '신규 부품 등록'}
+                </h3>
+                <button
+                  onClick={() => setIsFormModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      부품 코드 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.code}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                      placeholder="예: PART-001"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      부품명 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="예: 베어링 6205"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      카테고리 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="예: 회전부품"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      제조사 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.manufacturer}
+                      onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+                      placeholder="예: SKF"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      부품 번호 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.part_number}
+                      onChange={(e) => setFormData({ ...formData, part_number: e.target.value })}
+                      placeholder="예: 6205-2RS"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      단가 (원) <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.unit_price}
+                      onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
+                      placeholder="예: 25000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      현재 재고 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.stock_quantity}
+                      onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                      placeholder="예: 10"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      최소 재고 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.min_stock}
+                      onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })}
+                      placeholder="예: 10"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      최대 재고 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.max_stock}
+                      onChange={(e) => setFormData({ ...formData, max_stock: e.target.value })}
+                      placeholder="예: 50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      보관 위치 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="예: 창고 A-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      공급사 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.supplier}
+                      onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                      placeholder="예: SKF Korea"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      리드타임 (일) <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.lead_time_days}
+                      onChange={(e) => setFormData({ ...formData, lead_time_days: e.target.value })}
+                      placeholder="예: 7"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      적용 설비 <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={formData.equipment_id}
+                      onValueChange={(value) => {
+                        const eq = MOCK_EQUIPMENTS.find(e => e.id.toString() === value);
+                        setFormData({
+                          ...formData,
+                          equipment_id: value,
+                          equipment_name: eq?.name || ''
+                        });
+                      }}
+                      className="w-full"
+                    >
+                      <SelectItem value="">설비 선택</SelectItem>
+                      {MOCK_EQUIPMENTS.map(eq => (
+                        <SelectItem key={eq.id} value={eq.id.toString()}>{eq.name}</SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      최근 입고일 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={formData.last_restocked_date}
+                      onChange={(e) => setFormData({ ...formData, last_restocked_date: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setIsFormModalOpen(false)}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    취소
+                  </Button>
+                  <Button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    onClick={handleSave}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {isEditMode ? '저장' : '등록'}
                   </Button>
                 </div>
               </div>
