@@ -135,7 +135,7 @@ function Sidebar() {
   const location = useLocation();
 
   return (
-    <div className="w-80 bg-gradient-to-b from-white to-purple-50 h-screen shadow-2xl border-r-2 border-purple-100 flex flex-col fixed left-0 top-0">
+    <div className="w-80 bg-gradient-to-b from-white to-purple-50 max-h-screen shadow-2xl border-r-2 border-purple-100 flex flex-col fixed left-0 top-0 bottom-0">
       {/* Logo Section */}
       <div className="p-6 border-b-2 border-purple-200 bg-gradient-to-r from-purple-600 to-pink-600 flex-shrink-0">
         <h1 className="text-3xl font-black text-white flex items-center gap-2">
@@ -146,7 +146,7 @@ function Sidebar() {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 p-4 space-y-4 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 p-4 space-y-4 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 200px)' }}>
         {menuItems.map((section) => (
           <div key={section.category}>
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-3">
