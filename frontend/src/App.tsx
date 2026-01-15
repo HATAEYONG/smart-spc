@@ -47,6 +47,7 @@ import { EquipmentRepairHistoryPage } from './pages/EquipmentRepairHistoryPage';
 import { ToolMasterPage } from './pages/ToolMasterPage';
 import { ToolRepairHistoryPage } from './pages/ToolRepairHistoryPage';
 import { ToolPredictionPage } from './pages/ToolPredictionPage';
+import { WorkOrderManagementPage } from './pages/WorkOrderManagementPage';
 
 // Placeholder pages for new features
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -106,6 +107,7 @@ const menuItems = [
   {
     category: '고급 기능',
     items: [
+      { path: '/work-orders', label: '작업지시 관리', icon: ClipboardCheck },
       { path: '/six-sigma', label: 'Six Sigma', icon: Sigma },
       { path: '/six-sigma/tools', label: '통계 도구', icon: Wrench },
       { path: '/benchmarks', label: '사례·벤치마킹', icon: TrendingUp },
@@ -230,6 +232,7 @@ function App() {
             <Route path="/chatbot" element={<ChatbotPage />} />
 
             {/* 고급 기능 */}
+            <Route path="/work-orders" element={<WorkOrderManagementPage />} />
             <Route path="/six-sigma" element={<SixSigmaDashboardPage />} />
             <Route path="/six-sigma/tools" element={<SixSigmaToolsPage />} />
             <Route path="/benchmarks" element={<BenchmarksPage />} />
