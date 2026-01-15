@@ -135,9 +135,9 @@ function Sidebar() {
   const location = useLocation();
 
   return (
-    <div className="w-80 bg-gradient-to-b from-white to-purple-50 min-h-screen shadow-2xl border-r-2 border-purple-100 flex flex-col">
+    <div className="w-80 bg-gradient-to-b from-white to-purple-50 h-screen shadow-2xl border-r-2 border-purple-100 flex flex-col fixed left-0 top-0">
       {/* Logo Section */}
-      <div className="p-6 border-b-2 border-purple-200 bg-gradient-to-r from-purple-600 to-pink-600">
+      <div className="p-6 border-b-2 border-purple-200 bg-gradient-to-r from-purple-600 to-pink-600 flex-shrink-0">
         <h1 className="text-3xl font-black text-white flex items-center gap-2">
           <Brain className="w-9 h-9" />
           스마트 품질예측
@@ -146,7 +146,7 @@ function Sidebar() {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-4 overflow-y-auto overflow-x-hidden">
         {menuItems.map((section) => (
           <div key={section.category}>
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-3">
@@ -181,7 +181,7 @@ function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t-2 border-purple-200 bg-white">
+      <div className="p-4 border-t-2 border-purple-200 bg-white flex-shrink-0">
         <div className="text-center text-xs text-gray-500">
           <p className="font-semibold text-purple-600">Smart Quality Prediction System</p>
           <p className="mt-1">© 2025 SPC Solution</p>
@@ -198,7 +198,7 @@ function App() {
         <Sidebar />
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto ml-80">
           <Routes>
             {/* 기본 기능 */}
             <Route path="/" element={<DashboardPage />} />
