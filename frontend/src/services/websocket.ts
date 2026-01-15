@@ -62,6 +62,10 @@ class WebSocketService {
    * WebSocket 연결
    */
   connect(url: string): void {
+    // WebSocket 백엔드 미구현으로 연결 시도 차단
+    console.log('WebSocket 연결이 비활성화되었습니다. 백엔드 구현이 필요합니다.');
+    return;
+
     if (this.ws?.readyState === WebSocket.OPEN) {
       console.log('WebSocket already connected');
       return;

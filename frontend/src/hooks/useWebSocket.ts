@@ -133,8 +133,9 @@ export function useWebSocketEvent(
   handler: (message: WebSocketMessage) => void,
   url?: string
 ) {
+  // WebSocket 미구현으로 autoConnect 비활성화
   const { isConnected } = useWebSocket(url, {
-    autoConnect: true,
+    autoConnect: false,
   });
 
   useEffect(() => {
