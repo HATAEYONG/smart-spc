@@ -51,6 +51,9 @@ import { WorkOrderManagementPage } from './pages/WorkOrderManagementPage';
 import { QualityIssuesPage } from './pages/QualityIssuesPage';
 import { PreventiveMaintenancePage } from './pages/PreventiveMaintenancePage';
 import { ProductionMonitoringPage } from './pages/ProductionMonitoringPage';
+import { ERPIntegrationPage } from './pages/ERPIntegrationPage';
+import { IntegrationHistoryPage } from './pages/IntegrationHistoryPage';
+import { ManualInputPage } from './pages/ManualInputPage';
 
 // Placeholder pages for new features
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -118,6 +121,14 @@ const menuItems = [
       { path: '/benchmarks', label: '사례·벤치마킹', icon: TrendingUp },
       { path: '/reports', label: '보고서', icon: FileText },
       { path: '/master-data', label: '기본정보', icon: Settings },
+    ]
+  },
+  {
+    category: 'ERP/MES 연계',
+    items: [
+      { path: '/erp-integration', label: 'ERP 연계 관리', icon: Database },
+      { path: '/integration-history', label: '연계 이력', icon: BarChart3 },
+      { path: '/manual-input', label: '자체 입력', icon: FileText },
     ]
   },
   {
@@ -253,6 +264,11 @@ function App() {
             <Route path="/master-data/systems" element={<MasterDataSystemsPage />} />
             <Route path="/master-data/standards" element={<MasterDataStandardsPage />} />
             <Route path="/master-data/sync" element={<MasterDataSyncPage />} />
+
+            {/* ERP/MES 연계 */}
+            <Route path="/erp-integration" element={<ERPIntegrationPage />} />
+            <Route path="/integration-history" element={<IntegrationHistoryPage />} />
+            <Route path="/manual-input" element={<ManualInputPage />} />
 
             {/* 설비 관리 */}
             <Route path="/equipment-master" element={<EquipmentMasterPage />} />
