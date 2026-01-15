@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Activity, FileText, Database, Brain, MessageSquare,
   BarChart3, Sigma, Wrench, Settings, DollarSign, ClipboardCheck,
   ListChecks, Search, Shield, TrendingUp, Lightbulb, AlertTriangle,
-  Package, BookOpen, AlertCircle
+  Package, BookOpen, AlertCircle, Calendar
 } from 'lucide-react';
 import { DashboardPage } from './pages/DashboardPage';
 import { QCostClassificationPage } from './pages/QCostClassificationPage';
