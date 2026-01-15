@@ -17,6 +17,9 @@ const RealtimeNotifications: React.FC = () => {
   const [wsEnabled, setWsEnabled] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
+  // WebSocket 백엔드 미구현으로 알림 기능 비활성화
+  const isWebSocketImplemented = false;
+
   // WebSocket 연결 설정
   useEffect(() => {
     // WebSocket 연결 시도를 완전히 비활성화 (백엔드에서 WebSocket 지원 안 함)
@@ -149,30 +152,32 @@ const RealtimeNotifications: React.FC = () => {
 
   return (
     <>
-      {/* Bell Icon Button */}
-      <div className="fixed top-20 right-4 z-50">
-        <button
-          onClick={() => {
-            setShowPanel(!showPanel);
-            setUnreadCount(0);
-          }}
-          className="relative p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
-        >
-          <Bell className="w-6 h-6 text-gray-600" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </button>
+      {/* Bell Icon Button - WebSocket 미구현으로 숨김 */}
+      {isWebSocketImplemented && (
+        <div className="fixed top-20 right-4 z-50">
+          <button
+            onClick={() => {
+              setShowPanel(!showPanel);
+              setUnreadCount(0);
+            }}
+            className="relative p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          >
+            <Bell className="w-6 h-6 text-gray-600" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
 
-        <div className={`mt-2 text-xs text-center ${wsEnabled ? 'text-green-600' : 'text-gray-400'}`}>
-          {wsEnabled ? '● 실시간' : '○ 연결안됨'}
+          <div className={`mt-2 text-xs text-center ${wsEnabled ? 'text-green-600' : 'text-gray-400'}`}>
+            {wsEnabled ? '● 실시간' : '○ 연결안됨'}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Notification Panel */}
-      {showPanel && (
+      {isWebSocketImplemented && showPanel && (
         <div className="fixed top-20 right-16 w-96 max-h-[600px] bg-white rounded-lg shadow-2xl z-50 flex flex-col">
           {/* Header */}
           <div className="p-4 border-b flex items-center justify-between">
