@@ -48,6 +48,9 @@ import { ToolMasterPage } from './pages/ToolMasterPage';
 import { ToolRepairHistoryPage } from './pages/ToolRepairHistoryPage';
 import { ToolPredictionPage } from './pages/ToolPredictionPage';
 import { WorkOrderManagementPage } from './pages/WorkOrderManagementPage';
+import { QualityIssuesPage } from './pages/QualityIssuesPage';
+import { PreventiveMaintenancePage } from './pages/PreventiveMaintenancePage';
+import { ProductionMonitoringPage } from './pages/ProductionMonitoringPage';
 
 // Placeholder pages for new features
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -67,6 +70,7 @@ const menuItems = [
     category: '기본 기능',
     items: [
       { path: '/', label: '통합대시보드', icon: LayoutDashboard },
+      { path: '/production-monitoring', label: '생산 모니터링', icon: Activity },
       { path: '/qcost-dashboard', label: 'Q-COST 대시보드', icon: TrendingUp },
     ]
   },
@@ -94,6 +98,7 @@ const menuItems = [
       { path: '/data-entry', label: '데이터 입력', icon: Database },
       { path: '/run-rules', label: 'AI Run Rule 분석', icon: Brain },
       { path: '/advanced-charts', label: '고급 관리도', icon: BarChart3 },
+      { path: '/quality-issues', label: '품질 이슈 추적', icon: AlertTriangle },
     ]
   },
   {
@@ -122,6 +127,7 @@ const menuItems = [
       { path: '/equipment-parts', label: '설비 부품', icon: Package },
       { path: '/equipment-manual', label: '설비 매뉴얼', icon: BookOpen },
       { path: '/equipment-repair', label: '수리 이력', icon: AlertCircle },
+      { path: '/preventive-maintenance', label: '예방 보전 일정', icon: Calendar },
       { path: '/predictive-maintenance', label: '설비 예지 보전', icon: AlertTriangle },
     ]
   },
@@ -206,6 +212,7 @@ function App() {
           <Routes>
             {/* 기본 기능 */}
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/production-monitoring" element={<ProductionMonitoringPage />} />
             <Route path="/qcost-dashboard" element={<QCostDashboardPage />} />
 
             {/* 품질코스트 관리 */}
@@ -225,6 +232,7 @@ function App() {
             <Route path="/data-entry" element={<DataEntryPage />} />
             <Route path="/run-rules" element={<RunRuleAnalysisPage />} />
             <Route path="/advanced-charts" element={<AdvancedChartsPage />} />
+            <Route path="/quality-issues" element={<QualityIssuesPage />} />
 
             {/* 품질보증 & AI */}
             <Route path="/qa-system" element={<QASystemPage />} />
@@ -251,6 +259,7 @@ function App() {
             <Route path="/equipment-parts" element={<EquipmentPartsPage />} />
             <Route path="/equipment-manual" element={<EquipmentManualPage />} />
             <Route path="/equipment-repair" element={<EquipmentRepairHistoryPage />} />
+            <Route path="/preventive-maintenance" element={<PreventiveMaintenancePage />} />
             <Route path="/predictive-maintenance" element={<PredictiveMaintenancePage />} />
 
             {/* 치공구 관리 */}
