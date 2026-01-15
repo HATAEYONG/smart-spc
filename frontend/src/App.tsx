@@ -46,6 +46,7 @@ import { EquipmentManualPage } from './pages/EquipmentManualPage';
 import { EquipmentRepairHistoryPage } from './pages/EquipmentRepairHistoryPage';
 import { ToolMasterPage } from './pages/ToolMasterPage';
 import { ToolRepairHistoryPage } from './pages/ToolRepairHistoryPage';
+import { ToolPredictionPage } from './pages/ToolPredictionPage';
 
 // Placeholder pages for new features
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -127,6 +128,7 @@ const menuItems = [
     items: [
       { path: '/tool-master', label: '치공구 마스터', icon: Wrench },
       { path: '/tool-repair', label: '수리 이력', icon: AlertCircle },
+      { path: '/tool-prediction', label: '예측 고도화', icon: Brain },
     ]
   },
 ];
@@ -251,6 +253,7 @@ function App() {
             {/* 치공구 관리 */}
             <Route path="/tool-master" element={<ToolMasterPage />} />
             <Route path="/tool-repair" element={<ToolRepairHistoryPage />} />
+            <Route path="/tool-prediction" element={<ToolPredictionPage />} />
           </Routes>
         </div>
 
