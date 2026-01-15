@@ -44,6 +44,8 @@ import { EquipmentMasterPage } from './pages/EquipmentMasterPage';
 import { EquipmentPartsPage } from './pages/EquipmentPartsPage';
 import { EquipmentManualPage } from './pages/EquipmentManualPage';
 import { EquipmentRepairHistoryPage } from './pages/EquipmentRepairHistoryPage';
+import { ToolMasterPage } from './pages/ToolMasterPage';
+import { ToolRepairHistoryPage } from './pages/ToolRepairHistoryPage';
 
 // Placeholder pages for new features
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -118,6 +120,13 @@ const menuItems = [
       { path: '/equipment-manual', label: '설비 매뉴얼', icon: BookOpen },
       { path: '/equipment-repair', label: '수리 이력', icon: AlertCircle },
       { path: '/predictive-maintenance', label: '설비 예지 보전', icon: AlertTriangle },
+    ]
+  },
+  {
+    category: '치공구 관리',
+    items: [
+      { path: '/tool-master', label: '치공구 마스터', icon: Wrench },
+      { path: '/tool-repair', label: '수리 이력', icon: AlertCircle },
     ]
   },
 ];
@@ -238,6 +247,10 @@ function App() {
             <Route path="/equipment-manual" element={<EquipmentManualPage />} />
             <Route path="/equipment-repair" element={<EquipmentRepairHistoryPage />} />
             <Route path="/predictive-maintenance" element={<PredictiveMaintenancePage />} />
+
+            {/* 치공구 관리 */}
+            <Route path="/tool-master" element={<ToolMasterPage />} />
+            <Route path="/tool-repair" element={<ToolRepairHistoryPage />} />
           </Routes>
         </div>
 
