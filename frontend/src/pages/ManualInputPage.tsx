@@ -17,7 +17,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  FileText
 } from 'lucide-react';
 
 interface QualityRecord {
