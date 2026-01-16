@@ -2,10 +2,11 @@
  * 품질 이슈 추적 시스템
  * 불량 발생 시 원인 분석 (4M), 재발 방지 대책 관리, 8-Step Problem Solving
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { djangoApi, type QualityIssue as ApiQualityIssue } from '../services/api';
 import {
   AlertTriangle,
   Search,
@@ -30,7 +31,7 @@ import {
   XCircle
 } from 'lucide-react';
 
-// 품질 이슈 인터페이스
+// 품질 이슈 인터페이스 (API 타입과 호환)
 interface QualityIssue {
   id: number;
   issue_number: string;
@@ -42,229 +43,99 @@ interface QualityIssue {
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   status: 'OPEN' | 'INVESTIGATING' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
   reported_date: string;
-  reporter: string;
+  reporter?: string | number;
+  reporter_name?: string;
   department: string;
-
-  // 4M 분석
-  analysis_4m: {
-    man: string[];
-    machine: string[];
-    material: string[];
-    method: string[];
-  };
-
-  // 8-Step Problem Solving
-  problem_solving_steps: {
-    step1: string; // 문제 정의
-    step2: string; // 잠시적 대책
-    step3: string; // 원인 분석
-    step4: string; // 근본 원인
-    step5: string; // 영구적 대책
-    step6: string; // 대책 실행
-    step7: string; // 효과 확인
-    step8: string; // 표준화
-  };
-
-  // 추가 정보
   defect_quantity: number;
-  cost_impact: number;
-  responsible_person: string;
+  cost_impact: number | string;
+  responsible_person?: string;
   target_resolution_date: string;
   actual_resolution_date?: string;
+
+  // 4M 분석 (API 데이터 형식)
+  analyses_4m?: Array<{
+    id: number;
+    category: 'MAN' | 'MACHINE' | 'MATERIAL' | 'METHOD';
+    description: string;
+  }>;
+
+  // 8-Step Problem Solving (API 데이터 형식)
+  solving_steps?: Array<{
+    id: number;
+    step_number: number;
+    step_name: string;
+    content: string;
+    completed: boolean;
+  }>;
 }
 
-// Mock 데이터
-const mockQualityIssues: QualityIssue[] = [
-  {
-    id: 1,
-    issue_number: 'QI-2025-001',
-    title: '프레스 금형 치수 불량',
-    description: '자동차 부품 A-Type의 길이 치수가 규격 100±0.5mm를 초과하여 101.2mm 발견됨',
-    product_code: 'PROD-001',
-    product_name: '자동차 부품 A-Type',
-    defect_type: '치수 초과',
-    severity: 'HIGH',
-    status: 'IN_PROGRESS',
-    reported_date: '2025-01-10',
-    reporter: '홍길동',
-    department: '생산팀',
-    defect_quantity: 150,
-    cost_impact: 15000000,
-    responsible_person: '김엔지니어',
-    target_resolution_date: '2025-01-20',
-
-    analysis_4m: {
-      man: ['작업자 숙련도 부족', '교육 부재'],
-      machine: ['프레스 기계 노후', '금형 마모'],
-      material: ['원자재 두께 편차', '공급원 재질 불안정'],
-      method: ['작업 표준서 미준수', '점검 주기 미준수']
-    },
-
-    problem_solving_steps: {
-      step1: '프레스 금형으로 생산된 제품의 길이 치수가 101.2mm로 규격 초과',
-      step2: '불량 제품 전수 검사 및 폐기, 양품만 출하',
-      step3: '어시 원인: 금형 마모, 재질 편차, 온도 관리 부족',
-      step4: '금형 수명 초과로 인한 마모 (설계 수명 10,000회, 현재 12,500회 사용)',
-      step5: '금형 교체 및 주기적 점검 체계 도입',
-      step6: '신규 금형 설치 완료, 점검 일정 수립',
-      step7: '신규 금형 생산품 100개 측정 결과 전부 규격 준수 확인',
-      step8: '금형 수명 기준을 8,000회로 하향 및 자동 알림 시스템 구축 중'
-    }
-  },
-  {
-    id: 2,
-    issue_number: 'QI-2025-002',
-    title: '표면 스크래치 불량',
-    description: '전자 부품 B-Type의 표면에 미세 스크래치 다수 발견',
-    product_code: 'PROD-002',
-    product_name: '전자 부품 B-Type',
-    defect_type: '외관 불량',
-    severity: 'MEDIUM',
-    status: 'INVESTIGATING',
-    reported_date: '2025-01-12',
-    reporter: '이검사원',
-    department: '품질팀',
-    defect_quantity: 80,
-    cost_impact: 5000000,
-    responsible_person: '박엔지니어',
-    target_resolution_date: '2025-01-25',
-
-    analysis_4m: {
-      man: ['취급 주의 부족', '장갑 미착용'],
-      machine: ['컨베이어 벨트 마모', '적재함 거칠음'],
-      material: ['원자재 표면 민감도 증가'],
-      method: ['취급 공정 미정의', '보호재 미사용']
-    },
-
-    problem_solving_steps: {
-      step1: '전자 부품 표면 스크래치로 외관 불량 발생',
-      step2: '불량품 발생 시점 이후 제품 전수 검사',
-      step3: '원인 조사 중: 컨베이어, 취급 방법, 보호재 검토',
-      step4: '',
-      step5: '',
-      step6: '',
-      step7: '',
-      step8: ''
-    }
-  },
-  {
-    id: 3,
-    issue_number: 'QI-2025-003',
-    title: '용접 불량 - 비드 불균형',
-    description: '금속 부품 C-Type 용접부 비드 불균형 발견',
-    product_code: 'PROD-003',
-    product_name: '금속 부품 C-Type',
-    defect_type: '용접 불량',
-    severity: 'CRITICAL',
-    status: 'OPEN',
-    reported_date: '2025-01-14',
-    reporter: '정작업자',
-    department: '용접팀',
-    defect_quantity: 25,
-    cost_impact: 25000000,
-    responsible_person: '',
-    target_resolution_date: '2025-01-21',
-
-    analysis_4m: {
-      man: [],
-      machine: [],
-      material: [],
-      method: []
-    },
-
-    problem_solving_steps: {
-      step1: '',
-      step2: '',
-      step3: '',
-      step4: '',
-      step5: '',
-      step6: '',
-      step7: '',
-      step8: ''
-    }
-  },
-  {
-    id: 4,
-    issue_number: 'QI-2024-045',
-    title: '조립 오차 - 치합 불량',
-    description: '플라스틱 부품 D-Type 조립 시 치합 불량 발생',
-    product_code: 'PROD-004',
-    product_name: '플라스틱 부품 D-Type',
-    defect_type: '조립 불량',
-    severity: 'LOW',
-    status: 'RESOLVED',
-    reported_date: '2024-12-20',
-    reporter: '조현장',
-    department: '조립팀',
-    defect_quantity: 200,
-    cost_impact: 3000000,
-    responsible_person: '최엔지니어',
-    target_resolution_date: '2024-12-28',
-    actual_resolution_date: '2024-12-27',
-
-    analysis_4m: {
-      man: ['신규 작업자 교육 부족'],
-      machine: ['조립 치구 정밀도 저하'],
-      material: ['사출 성형품 수축률 편차'],
-      method: ['조립 순서 미준수']
-    },
-
-    problem_solving_steps: {
-      step1: '조립 시 치합 불량으로 조립 불가 제품 발생',
-      step2: '수리 가능품은 수리, 불가능품은 폐기 처리',
-      step3: '치구 정밀도 측정, 작업자 숙련도 확인',
-      step4: '조립 치구 마모로 인한 위치 정밀도 저하 (±0.3mm → ±0.8mm)',
-      step5: '치구 교체 및 주기적 교정 (월 1회)',
-      step6: '신규 치구 설치 및 작업자 재교육 완료',
-      step7: '개선 후 불량률 2% → 0.1%로 감소 확인',
-      step8: '치구 교정 주기를 작업 표준서에 반영 완료'
-    }
-  },
-  {
-    id: 5,
-    issue_number: 'QI-2025-004',
-    title: '열처리 경도 불균형',
-    description: '정밀 부품 E-Type 열처리 후 경도 편차 발견',
-    product_code: 'PROD-005',
-    product_name: '정밀 부품 E-Type',
-    defect_type: '열처리 불량',
-    severity: 'HIGH',
-    status: 'OPEN',
-    reported_date: '2025-01-15',
-    reporter: '한기사',
-    department: '열처리팀',
-    defect_quantity: 60,
-    cost_impact: 12000000,
-    responsible_person: '없음',
-    target_resolution_date: '2025-01-22',
-
-    analysis_4m: {
-      man: ['온도 설정 오류 가능성'],
-      machine: ['열처리로 온도 센서 오작동 의심'],
-      material: [],
-      method: ['열처리 프로파일 검증 필요']
-    },
-
-    problem_solving_steps: {
-      step1: '열처리 경도가 규격 HRC 45-48 범위를 벗어남 (측정값: HRC 42-50)',
-      step2: '불량품 구분 격리 및 재열처리 검토',
-      step3: '온도 센서 교정, 로 내 온도 분포 측정',
-      step4: '',
-      step5: '',
-      step6: '',
-      step7: '',
-      step8: ''
-    }
-  }
-];
-
 const QualityIssuesPage: React.FC = () => {
-  const [issues, setIssues] = useState<QualityIssue[]>(mockQualityIssues);
+  const [issues, setIssues] = useState<QualityIssue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIssue, setSelectedIssue] = useState<QualityIssue | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // API에서 데이터 로드
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        setLoading(true);
+        const response = await djangoApi.qualityIssues.list();
+        // API 데이터 변환
+        const transformedIssues: QualityIssue[] = response.results.map((issue) => ({
+          ...issue,
+          reporter: issue.reporter_name || issue.reporter || '미지정',
+          cost_impact: typeof issue.cost_impact === 'string'
+            ? parseFloat(issue.cost_impact)
+            : issue.cost_impact,
+          reported_date: issue.reported_date?.split('T')[0] || issue.reported_date,
+          target_resolution_date: issue.target_resolution_date?.split('T')[0] || issue.target_resolution_date,
+          actual_resolution_date: issue.actual_resolution_date?.split('T')[0] || undefined,
+        }));
+        setIssues(transformedIssues);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch quality issues:', err);
+        setError('데이터를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIssues();
+  }, []);
+
+  // 로딩 상태 표시
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태 표시
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center h-screen">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-900 font-semibold mb-2">오류 발생</p>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>다시 시도</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const getSeverityBadge = (severity: string) => {
     const styles = {
@@ -527,7 +398,7 @@ const QualityIssuesPage: React.FC = () => {
                     <td className="p-4 font-medium text-purple-600">{issue.issue_number}</td>
                     <td className="p-4">
                       <div className="font-medium">{issue.title}</div>
-                      <div className="text-sm text-gray-500">{issue.reporter} / {issue.department}</div>
+                      <div className="text-sm text-gray-500">{issue.reporter || '미지정'} / {issue.department}</div>
                     </td>
                     <td className="p-4">
                       <Badge variant="outline">{issue.defect_type}</Badge>
@@ -646,81 +517,38 @@ const QualityIssuesPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 font-semibold text-blue-600">
-                        <User className="w-5 h-5" />
-                        Man (사람)
-                      </div>
-                      {selectedIssue.analysis_4m.man.length > 0 ? (
-                        <ul className="space-y-2 ml-7">
-                          {selectedIssue.analysis_4m.man.map((item, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-blue-600">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-500 ml-7">분석 항목 없음</p>
-                      )}
-                    </div>
+                    {['MAN', 'MACHINE', 'MATERIAL', 'METHOD'].map((category) => {
+                      const categoryAnalyses = selectedIssue.analyses_4m?.filter(a => a.category === category) || [];
+                      const categoryConfig = {
+                        MAN: { label: 'Man (사람)', color: 'text-blue-600', icon: User },
+                        MACHINE: { label: 'Machine (설비)', color: 'text-purple-600', icon: Settings },
+                        MATERIAL: { label: 'Material (자재)', color: 'text-green-600', icon: Package },
+                        METHOD: { label: 'Method (방법)', color: 'text-orange-600', icon: Wrench },
+                      };
+                      const config = categoryConfig[category as keyof typeof categoryConfig];
+                      const Icon = config.icon;
 
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 font-semibold text-purple-600">
-                        <Settings className="w-5 h-5" />
-                        Machine (설비)
-                      </div>
-                      {selectedIssue.analysis_4m.machine.length > 0 ? (
-                        <ul className="space-y-2 ml-7">
-                          {selectedIssue.analysis_4m.machine.map((item, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-purple-600">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-500 ml-7">분석 항목 없음</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 font-semibold text-green-600">
-                        <Package className="w-5 h-5" />
-                        Material (자재)
-                      </div>
-                      {selectedIssue.analysis_4m.material.length > 0 ? (
-                        <ul className="space-y-2 ml-7">
-                          {selectedIssue.analysis_4m.material.map((item, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-green-600">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-500 ml-7">분석 항목 없음</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 font-semibold text-orange-600">
-                        <Wrench className="w-5 h-5" />
-                        Method (방법)
-                      </div>
-                      {selectedIssue.analysis_4m.method.length > 0 ? (
-                        <ul className="space-y-2 ml-7">
-                          {selectedIssue.analysis_4m.method.map((item, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-orange-600">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-500 ml-7">분석 항목 없음</p>
-                      )}
-                    </div>
+                      return (
+                        <div key={category} className="space-y-3">
+                          <div className={`flex items-center gap-2 font-semibold ${config.color}`}>
+                            <Icon className="w-5 h-5" />
+                            {config.label}
+                          </div>
+                          {categoryAnalyses.length > 0 ? (
+                            <ul className="space-y-2 ml-7">
+                              {categoryAnalyses.map((item) => (
+                                <li key={item.id} className="flex items-start gap-2">
+                                  <span className={config.color}>•</span>
+                                  <span>{item.description}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-gray-500 ml-7">분석 항목 없음</p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -736,25 +564,28 @@ const QualityIssuesPage: React.FC = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {[
-                      { step: 'step1', label: '1단계: 문제 정의', icon: Target },
-                      { step: 'step2', label: '2단계: 잠시적 대책', icon: Zap },
-                      { step: 'step3', label: '3단계: 원인 분석', icon: Search },
-                      { step: 'step4', label: '4단계: 근본 원인', icon: Lightbulb },
-                      { step: 'step5', label: '5단계: 영구적 대책', icon: CheckCircle },
-                      { step: 'step6', label: '6단계: 대책 실행', icon: Settings },
-                      { step: 'step7', label: '7단계: 효과 확인', icon: BarChart3 },
-                      { step: 'step8', label: '8단계: 표준화', icon: FileText },
+                      { stepNumber: 1, label: '1단계: 문제 정의', icon: Target },
+                      { stepNumber: 2, label: '2단계: 잠시적 대책', icon: Zap },
+                      { stepNumber: 3, label: '3단계: 원인 분석', icon: Search },
+                      { stepNumber: 4, label: '4단계: 근본 원인', icon: Lightbulb },
+                      { stepNumber: 5, label: '5단계: 영구적 대책', icon: CheckCircle },
+                      { stepNumber: 6, label: '6단계: 대책 실행', icon: Settings },
+                      { stepNumber: 7, label: '7단계: 효과 확인', icon: BarChart3 },
+                      { stepNumber: 8, label: '8단계: 표준화', icon: FileText },
                     ].map((item) => {
-                      const content = selectedIssue.problem_solving_steps[item.step as keyof typeof selectedIssue.problem_solving_steps];
+                      const stepData = selectedIssue.solving_steps?.find(s => s.step_number === item.stepNumber);
                       const Icon = item.icon;
                       return (
-                        <div key={item.step} className="border rounded-lg p-4">
+                        <div key={item.stepNumber} className="border rounded-lg p-4">
                           <div className="flex items-center gap-2 mb-2">
-                            <Icon className="w-5 h-5 text-purple-600" />
+                            <Icon className={`w-5 h-5 ${stepData?.completed ? 'text-green-600' : 'text-purple-600'}`} />
                             <span className="font-semibold text-gray-900">{item.label}</span>
+                            {stepData?.completed && (
+                              <CheckCircle className="w-4 h-4 text-green-600 ml-auto" />
+                            )}
                           </div>
-                          {content ? (
-                            <p className="text-gray-700 ml-7">{content}</p>
+                          {stepData?.content ? (
+                            <p className="text-gray-700 ml-7">{stepData.content}</p>
                           ) : (
                             <p className="text-gray-400 ml-7 italic">입력 대기중...</p>
                           )}

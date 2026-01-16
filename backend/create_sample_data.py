@@ -4,7 +4,8 @@
 """
 import os
 import django
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
+from django.utils import timezone
 import random
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'smart_spc.settings')
@@ -18,7 +19,25 @@ from work_orders.models import WorkOrder, WorkOrderTool, WorkOrderProgress
 from integration.models import ERPIntegration, IntegrationHistory, ManualQualityInput
 
 
-def create_sample_data():
+def create_sample_data(clear_existing=False):
+    """
+    샘플 데이터 생성 함수
+
+    Args:
+        clear_existing: 기존 데이터 삭제 여부 (True: 삭제 후 생성, False: 건너뛰기)
+    """
+    if clear_existing:
+        print("=" * 50)
+        print("기존 데이터 삭제 중...")
+        print("=" * 50)
+        QualityIssue.objects.all().delete()
+        Equipment.objects.all().delete()
+        Tool.objects.all().delete()
+        WorkOrder.objects.all().delete()
+        ERPIntegration.objects.all().delete()
+        ManualQualityInput.objects.all().delete()
+        print("기존 데이터 삭제 완료!\n")
+
     print("=" * 50)
     print("샘플 데이터 생성 시작")
     print("=" * 50)
@@ -219,8 +238,8 @@ def create_sample_data():
                 integration=integration,
                 sync_id=f'SYNC-202501{j:02d}-00{i}',
                 sync_type=random.choice(['FULL', 'INCREMENTAL', 'MANUAL']),
-                start_time=datetime.now() - timedelta(days=j, hours=random.randint(1, 23)),
-                end_time=datetime.now() - timedelta(days=j, hours=random.randint(1, 23)),
+                start_time=timezone.now() - timedelta(days=j, hours=random.randint(1, 23)),
+                end_time=timezone.now() - timedelta(days=j, hours=random.randint(1, 23)),
                 duration_seconds=random.randint(30, 300),
                 status=random.choice(['SUCCESS', 'FAILED', 'PARTIAL']),
                 records_processed=random.randint(100, 5000),
@@ -285,4 +304,7 @@ def create_sample_data():
 
 
 if __name__ == '__main__':
-    create_sample_data()
+    import sys
+    # 명령줄 인수로 --clear 또는 -c가 있으면 기존 데이터 삭제
+    clear_existing = '--clear' in sys.argv or '-c' in sys.argv
+    create_sample_data(clear_existing=clear_existing)
