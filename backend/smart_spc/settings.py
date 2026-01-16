@@ -44,6 +44,13 @@ INSTALLED_APPS = [
     'qa',
     'ai_service',
     'predictive_maintenance',
+
+    # New apps
+    'quality_issues',
+    'equipment',
+    'tools',
+    'work_orders',
+    'integration',
 ]
 
 MIDDLEWARE = [

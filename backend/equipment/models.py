@@ -157,6 +157,12 @@ class PreventiveMaintenance(models.Model):
         COMPLETED = 'COMPLETED', '완료'
         OVERDUE = 'OVERDUE', '지연'
 
+    class Priority(models.TextChoices):
+        LOW = 'LOW', '낮음'
+        MEDIUM = 'MEDIUM', '중간'
+        HIGH = 'HIGH', '높음'
+        CRITICAL = 'CRITICAL', '긴급'
+
     equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, related_name='pm_tasks', verbose_name='설비')
     task_number = models.CharField(max_length=50, unique=True, verbose_name='작업 번호')
     task_name = models.CharField(max_length=200, verbose_name='작업명')
@@ -166,7 +172,7 @@ class PreventiveMaintenance(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name='상태')
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='pm_tasks', verbose_name='담당자')
     estimated_duration = models.IntegerField(verbose_name='예상 소요시간(분)')
-    priority = models.CharField(max_length=20, choices=QualityIssue.Severity.choices, verbose_name='우선순위')
+    priority = models.CharField(max_length=20, choices=Priority.choices, default=Priority.MEDIUM, verbose_name='우선순위')
     last_completed = models.DateField(null=True, blank=True, verbose_name='마지막 완료일')
     next_due = models.DateField(verbose_name='다음 예정일')
     completion_notes = models.TextField(blank=True, verbose_name='완료 메모')

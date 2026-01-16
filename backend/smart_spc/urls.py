@@ -22,4 +22,11 @@ urlpatterns = [
     path('api/v1/spc/', include('spc.urls')),
     path('api/v1/qa/', include('qa.urls')),
     path('api/v1/pm/', include('predictive_maintenance.urls')),
+
+    # New API endpoints
+    path('api/v1/quality/', include('quality_issues.urls')),
+    path('api/v1/equipment/', include('equipment.urls')),
+    path('api/v1/tools/', include('tools.urls')),
+    path('api/v1/work-orders/', include('work_orders.urls')),
+    path('api/v1/integration/', include('integration.urls')),
 ]
